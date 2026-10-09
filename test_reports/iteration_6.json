@@ -1,0 +1,34 @@
+{
+  "summary": "Targeted re-test of PDP→Cart GLOW15 coupon handoff (previously failing in iteration_5). Flow now PASSES end-to-end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Homepage/PLP (console warnings only, non-blocking)", "issues": ["React: 'Encountered two children with the same key' for keys eye-care, body-lotion, night-cream (duplicate list items)", "Invalid DOM property 'fetchpriority' should be 'fetchPriority'", "UNSAFE_componentWillMount in SideEffect(NullComponent) under StrictMode"]}
+    ]
+  },
+  "test_steps_executed": [
+    "1. Loaded homepage, cleared localStorage keys discountClaimed/discountCode/cart.",
+    "2. Opened /product/anti-aging-serum. pdp-effective-price = ₹999.",
+    "3. Clicked [data-testid=pdp-apply-15-coupon-btn]. pdp-effective-price updated to ₹849. ✅",
+    "4. Clicked [data-testid=add-to-cart-btn]. localStorage verified: discountClaimed='true', discountCode='GLOW15', cart has anti-aging-serum. ✅",
+    "5. Navigated to /cart and waited ~6s. Applied coupon chip shows 'GLOW15 — Saving ₹149.85' with Remove button. Order summary: Subtotal ₹999, Coupon Discount -₹150, Delivery FREE, Total ₹849. ✅"
+  ],
+  "test_report_links": ["/app/test_reports/iteration_6.json"],
+  "action_items": [
+    "(Non-blocking cleanup) Fix React duplicate key warnings for list items with keys eye-care/body-lotion/night-cream (likely category list rendered twice without unique keys).",
+    "(Non-blocking cleanup) Replace `fetchpriority` with `fetchPriority` on <img>/<link> props.",
+    "(Non-blocking cleanup) Remove UNSAFE_componentWillMount usage in SideEffect(NullComponent) (likely react-helmet) — consider react-helmet-async."
+  ],
+  "critical_code_review_comments": [
+    "PDP→Cart coupon handoff via localStorage + CustomEvent now works correctly; CartPage auto-applies on mount within ~6s."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (1/1 flow)"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 5's PDP→Cart GLOW15 bug is fixed and verified. Only non-blocking console warnings remain (duplicate React keys for categories eye-care/body-lotion/night-cream, fetchpriority casing, legacy UNSAFE_componentWillMount). Rest of the app not re-tested per scope.",
+  "rca of the issue": "Fixed by main agent: ProductDetailPage.js now writes localStorage.discountClaimed='true' + discountCode='GLOW15' and dispatches a 'discountClaimed' CustomEvent on add/buy; CartPage.js reads those keys on mount and auto-applies GLOW15 via the coupon API, giving a 15% discount (₹999 → ₹849 verified on UI)."
+}

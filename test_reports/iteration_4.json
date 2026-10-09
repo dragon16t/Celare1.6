@@ -1,0 +1,37 @@
+{
+  "summary": "SMOKE test post-Gemini-migration PASSED. The user-reported 'EMERGENT_LLM_KEY not configured' error is RESOLVED: both the direct API call POST /api/admin/ai/one-click-product (via curl) and the admin UI One-Click AI Product button no longer emit the EMERGENT_LLM_KEY error. Text generation via Gemini succeeded end-to-end for a test product (name/tagline/description/concerns/ingredients/benefits all returned). Homepage, /shop, and /product/anti-aging-serum render correctly. One caveat observed: when the UI triggers one-click WITH generate_image:true, the request crossed the Cloudflare/ingress ~55s window and the browser received a 502 origin-timeout alert — the Gemini-image path is slow enough to flirt with ingress timeouts in the preview env. This is NOT a regression of the Gemini fix (text-only path works; backend curl of image path reportedly completes in ~51s per main agent).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/admin/ai/one-click-product (generate_image=true)", "issue": "Request from browser via Cloudflare returned 502 after ~55s. Direct curl (per main agent) completes in ~51s. Risk of ingress timeout for image-generation path — consider async/background job + polling."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Homepage / Shop / Product detail images", "issue": "1 broken image on each page (home 1/48, shop 1/15, product 1/8). Pre-existing from iteration_3; identical count/behaviour.", "selector": "img (naturalWidth===0)", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin → One-Click AI Product (with image)", "issue": "UI uses axios without an explicit timeout and request can exceed Cloudflare/ingress ~55s limit → user sees 'origin returned invalid or incomplete response' alert instead of success. No test product leaked (verified via /api/admin/products listing after run).", "affected_selectors": ["[data-testid=one-click-ai-generate-btn]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_4.json"],
+  "action_items": [
+    "Consider converting /api/admin/ai/one-click-product (with generate_image=true) to an async job pattern (job id + polling) to avoid Cloudflare 55-60s edge timeouts. Alternatively, let user generate text first and image in a second quick call.",
+    "Investigate the single stale image on homepage/shop/product (naturalWidth===0) — same URL as iteration_3; may be a lazyload race or a legitimately missing asset.",
+    "(Minor) Replace browser window.prompt chain in One-Click AI Product with a proper modal form for better UX and testability."
+  ],
+  "critical_code_review_comments": [
+    "Gemini migration looks clean: GeminiChat drop-in used uniformly across routes/services, Emergent key is now optional fallback.",
+    "Admin One-Click AI uses sequential window.prompt() calls — fragile, not accessible, blocks keyboard flow, and hard to test. Consider a form modal.",
+    "Frontend axios call for one-click product has no explicit timeout; recommend adding a long timeout plus a user-visible progress indicator for 50s+ generations."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (one-click text path, admin login, product listing, delete)", "frontend": "100% smoke (home/shop/product/admin-login/one-click-no-emergent-error); image-generation UX degraded due to ingress timeout"},
+  "test_credentials": "Admin password celestaglow2024 (verified)",
+  "seed_data_creation": "None persistent. A test product 'test-hyaluronic-acid-moisturizer' was created once via curl and deleted immediately after verification. The frontend-triggered run timed out at the edge and no product was persisted (verified empty admin products list afterwards).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "User's EMERGENT_LLM_KEY bug is verified fixed. The remaining concern is a Cloudflare 55s edge timeout when the One-Click AI Product UI runs with image generation; backend itself works (curl ok in ~51s). If main agent moves image gen to an async job, next agent should re-verify both the UI flow and that products land in /api/admin/products.",
+  "rca of the issue": "User's original bug: AI call sites required EMERGENT_LLM_KEY. Main agent introduced GeminiChat (services/gemini_llm.py) and switched every call site to prefer GEMINI_API_KEY. Verified via (a) curl POST /api/admin/ai/one-click-product {generate_image:false} returned success:true with full Gemini-generated content, and (b) UI One-Click AI Product button flow — no 'EMERGENT_LLM_KEY not configured' error anywhere; alert body (when image path timed out) was a Cloudflare 502 message, not the key error. Fix confirmed."
+}
