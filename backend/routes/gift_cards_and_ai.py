@@ -1189,6 +1189,7 @@ async def _bulk_generate_worker(job_id: str, body: BulkGenerateRequest, items: l
     for it in items:
         job["current"] = it.name
         sub = {"step": "queued"}
+        job["item"] = sub
         req = OneClickProductRequest(
             name=it.name, brand=body.brand or "Celesta Glow",
             key_ingredients=it.key_ingredients or "",

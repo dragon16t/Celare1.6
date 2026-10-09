@@ -6,6 +6,7 @@ import { List } from 'react-window';
 import ImageCropperModal from '../../components/admin/ImageCropperModal';
 import ShadeEditor from '../../components/admin/ShadeEditor';
 import { resolveImageUrl } from '../../utils/productImage';
+import { GenerationProgress } from '../../components/admin/GenerationProgress';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -708,6 +709,7 @@ function AdminProducts() {
   const [analyzerOpen, setAnalyzerOpen] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiStep, setAiStep] = useState('');
+  const [ocInfo, setOcInfo] = useState(null);
   const [bulkGen, setBulkGen] = useState({ running: false });
   // Bulk-selection state — used by the "select multiple to delete" checkbox UX.
   const [selectedSlugs, setSelectedSlugs] = useState(new Set());
@@ -1268,6 +1270,7 @@ function AdminProducts() {
               if (specs === null) return; // cancelled
               setAiGenerating(true);
               setAiStep('starting');
+              setOcInfo({ name: name.trim(), startedAt: Date.now() });
               try {
                 const { data } = await axios.post(`${API}/admin/ai/one-click-product`, {
                   name: name.trim(), brand: 'Celesta Glow',
@@ -1282,7 +1285,7 @@ function AdminProducts() {
                 const deadline = Date.now() + 5 * 60 * 1000;
                 let job = null;
                 while (Date.now() < deadline) {
-                  await new Promise(r => setTimeout(r, 3000));
+                  await new Promise(r => setTimeout(r, 1500));
                   const { data: j } = await axios.get(`${API}/admin/ai/one-click-product-job/${jobId}`, { headers });
                   job = j;
                   setAiStep(j.step || 'working');
@@ -1310,13 +1313,14 @@ function AdminProducts() {
               } finally {
                 setAiGenerating(false);
                 setAiStep('');
+                setOcInfo(null);
               }
             }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white text-sm font-bold shadow-md hover:shadow-lg"
             data-testid="one-click-ai-generate-btn"
             title="Type a product name — AI generates a full product (copy + image + niche/concern routing) in one click."
           >
-            <Sparkles size={16} /> {aiGenerating ? (aiStep ? `AI: ${aiStep}…` : 'Generating…') : 'One-Click AI Product'}
+            <Sparkles size={16} /> {ocInfo ? 'Generating…' : 'One-Click AI Product'}
           </button>
           <button
             type="button"
@@ -1349,7 +1353,7 @@ function AdminProducts() {
               }).filter(Boolean);
               if (!items.length) { alert('No valid rows found'); return; }
               if (!window.confirm(`Generate ${items.length} product(s) with AI? This runs in the background, one at a time.`)) return;
-              setBulkGen({ running: true, done: 0, failed: 0, total: items.length, current: items[0].name });
+              setBulkGen({ running: true, done: 0, failed: 0, total: items.length, current: items[0].name, step: 'queued', startedAt: Date.now() });
               try {
                 const { data } = await axios.post(`${API}/admin/ai/bulk-generate`, { items, brand: 'Celesta Glow', generate_image: true }, { headers });
                 if (!data?.job_id) { alert('Failed to start bulk generation'); setBulkGen({ running: false }); return; }
@@ -1357,10 +1361,10 @@ function AdminProducts() {
                 const deadline = Date.now() + 30 * 60 * 1000;
                 let job = null;
                 while (Date.now() < deadline) {
-                  await new Promise(r => setTimeout(r, 3000));
+                  await new Promise(r => setTimeout(r, 1500));
                   const { data: j } = await axios.get(`${API}/admin/ai/bulk-generate-job/${jobId}`, { headers });
                   job = j;
-                  setBulkGen({ running: j.status === 'running', done: j.done, failed: j.failed, total: j.total, current: j.current });
+                  setBulkGen(prev => ({ ...prev, running: j.status === 'running', done: j.done ?? 0, failed: j.failed ?? 0, total: j.total ?? prev.total, current: j.current, step: j.item?.step || 'queued' }));
                   if (j.status !== 'running') break;
                   try { window.dispatchEvent(new Event('admin-data-changed')); } catch {}
                   fetchAll();
@@ -1380,8 +1384,12 @@ function AdminProducts() {
             data-testid="bulk-ai-generate-btn"
             title="Paste many product names (one per line) — AI generates each full product in the background, one at a time."
           >
-            <Sparkles size={16} /> {bulkGen.running ? `Bulk: ${bulkGen.done + bulkGen.failed}/${bulkGen.total}${bulkGen.current ? ` · ${bulkGen.current.slice(0, 18)}…` : ''}` : 'Bulk AI Generate'}
+            <Sparkles size={16} /> {bulkGen.running ? 'Bulk running…' : 'Bulk AI Generate'}
           </button>
+          {ocInfo && <GenerationProgress mode="single" name={ocInfo.name} step={aiStep} startedAt={ocInfo.startedAt} />}
+          {bulkGen.running && (
+            <GenerationProgress mode="bulk" name={bulkGen.current} step={bulkGen.step} done={bulkGen.done} failed={bulkGen.failed} total={bulkGen.total} startedAt={bulkGen.startedAt} />
+          )}
 
           <button
             type="button"
