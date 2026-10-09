@@ -42,16 +42,11 @@ def _slugify(s: str) -> str:
 
 def to_bytes(image: Union[Image.Image, bytes], fmt: str = "JPEG",
              quality: int = 95) -> bytes:
-    """Encode a PIL image at high quality (no visible compression artefacts)."""
+    """Encode a PIL image losslessly (PNG) so generated art keeps full quality."""
     if isinstance(image, (bytes, bytearray)):
         return bytes(image)
     buf = io.BytesIO()
-    if fmt.upper() == "PNG":
-        image.save(buf, "PNG", optimize=True)
-    else:
-        img = image.convert("RGB") if image.mode in ("RGBA", "P", "LA") else image
-        img.save(buf, "JPEG", quality=quality, subsampling=0,
-                 optimize=True, progressive=True)
+    image.save(buf, "PNG")
     return buf.getvalue()
 
 
@@ -119,12 +114,10 @@ def _upload_sync(data: bytes, folder: str, public_id: str) -> dict:
         invalidate=True,         # bust the CDN edge cache
         unique_filename=False,
         use_filename=False,
-        quality=95,                # explicit near-lossless — no auto-compression
-        fetch_format="auto",       # serve webp/avif → fast loads
     )
     url = res.get("secure_url") or res.get("url")
     if url and "/upload/" in url and "q_" not in url:
-        url = url.replace("/upload/", "/upload/q_95,f_auto/", 1)
+        url = url.replace("/upload/", "/upload/q_100,f_auto/", 1)
     return {"url": url, "public_id": res.get("public_id")}
 
 

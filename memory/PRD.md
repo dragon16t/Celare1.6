@@ -115,3 +115,7 @@ Backlog: add integration keys; resync more products if needed by re-running impo
 - Speed: q_95→q_auto:good, widths 700/1200, top banner + hero optimized via <picture>, removed 3 unused ~165KB hero preloads in index.html.
 - Gemini one-click generator NOT re-verified (credits depleted).
 
+## No-compression images — 2026-10-09
+- Admin upload stores original bytes untouched (no resize/re-encode); Cloudinary upload has no incoming quality transform. Generated art (durable_images, brand_bottles, AI hi-res) saved as lossless PNG.
+- Delivery everywhere: f_auto,q_100 (+ w_ c_limit, never upscales). Product detail 1600, grid 800, top banner 1600/1200. Verified: uploaded 2400px PNG returned pixel-identical.
+

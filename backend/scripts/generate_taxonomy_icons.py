@@ -53,9 +53,9 @@ def to_jpeg(data):
     im = Image.open(io.BytesIO(data)).convert("RGB")
     w, h = im.size
     s = min(w, h)
-    im = im.crop(((w - s) // 2, (h - s) // 2, (w + s) // 2, (h + s) // 2)).resize((512, 512), Image.LANCZOS)
+    im = im.crop(((w - s) // 2, (h - s) // 2, (w + s) // 2, (h + s) // 2))
     buf = io.BytesIO()
-    im.save(buf, "JPEG", quality=90)
+    im.save(buf, "PNG")
     return buf.getvalue()
 
 

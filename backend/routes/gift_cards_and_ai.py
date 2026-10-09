@@ -1034,7 +1034,7 @@ async def _ai_generate_product_image(name: str, brand: str, category: str,
             _scale = 2048 / max(_im.size)
             _im = _im.resize((int(_im.width * _scale), int(_im.height * _scale)), _Img.LANCZOS)
         _buf = _io.BytesIO()
-        _im.save(_buf, "JPEG", quality=95, subsampling=0, optimize=True, progressive=True)
+        _im.save(_buf, "PNG")
         return _buf.getvalue()
 
     try:
@@ -1369,7 +1369,7 @@ Tone: trustworthy, clinical-but-warm, India-aware. Avoid "miracle"/"instant cure
         (issue: blurry/low-quality product images). No-op for non-Cloudinary URLs
         or URLs that already carry any quality transform (prevents double-stacking)."""
         if u and "res.cloudinary.com" in u and "/upload/" in u and "q_" not in u:
-            return u.replace("/upload/", "/upload/q_95,f_auto/", 1)
+            return u.replace("/upload/", "/upload/q_100,f_auto/", 1)
         return u
 
     image_url = body.image_url
@@ -1544,7 +1544,7 @@ async def upscale_product_images(
             else:
                 break
         # Crisp, non-destructive: near-lossless quality + auto format, NO e_upscale.
-        tx = "q_95,f_auto"
+        tx = "q_100,f_auto"
         return f"{pre}/upload/{tx}/{rest}"
 
     images = [u for u in (product.get("images") or []) if u]

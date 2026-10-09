@@ -192,7 +192,7 @@ async def public_top_banner(response: Response):
     mobile = doc.get("image_mobile") or desktop
     return {
         "image_desktop": _opt(desktop, 1600) if desktop else "",
-        "image_mobile": _opt(mobile, 800) if mobile else "",
+        "image_mobile": _opt(mobile, 1200) if mobile else "",
         "link_url": doc.get("link_url") or "/shop?niche=anti-aging",
         "is_active": bool(doc.get("is_active", True)),
     }
@@ -712,7 +712,7 @@ async def get_all_products(
     # without re-uploading anything. Card images use 600px; detail uses 1200.
     try:
         from services.image_optimizer import optimize_products_list
-        optimize_products_list(products, width=700 if lean else 1200)
+        optimize_products_list(products, width=800 if lean else 1600)
     except Exception as e:
         logging.warning(f"[products] image optimize failed: {e}")
 
@@ -794,7 +794,7 @@ async def get_products_batch(data: Dict[str, Any]):
     items.sort(key=lambda p: order.get(p.get("slug"), 9999))
     try:
         from services.image_optimizer import optimize_products_list
-        optimize_products_list(items, width=700)
+        optimize_products_list(items, width=800)
     except Exception:
         pass
     await _apply_sale(items)
@@ -863,7 +863,7 @@ async def get_product(slug: str):
             pass
     try:
         from services.image_optimizer import optimize_product_images
-        optimize_product_images(product, width=1200)
+        optimize_product_images(product, width=1600)
     except Exception:
         pass
     # Sale-mode overlay (Feb-2026)
@@ -2472,36 +2472,14 @@ async def upload_image(
 
     try:
         img = Image.open(io.BytesIO(raw))
-        # Respect EXIF rotation so phone photos land upright
-        try:
-            from PIL import ImageOps
-            img = ImageOps.exif_transpose(img)
-        except Exception:
-            pass
-
-        # Preserve transparency for PNGs; otherwise convert to RGB for JPEG output
-        has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
-        is_png_like = mime in ("image/png", "image/webp") and has_alpha
-
-        # Resize if wider/taller than 1600px on the long edge
-        MAX_DIM = 1600
-        if max(img.size) > MAX_DIM:
-            img.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
-
-        buf = io.BytesIO()
-        if is_png_like:
-            img.save(buf, format="WEBP", quality=82, method=6)
-            out_ext = "webp"
-            out_mime = "image/webp"
-        else:
-            if img.mode != "RGB":
-                img = img.convert("RGB")
-            img.save(buf, format="JPEG", quality=82, optimize=True, progressive=True)
-            out_ext = "jpg"
-            out_mime = "image/jpeg"
-        compressed = buf.getvalue()
+        img.verify()
+        # Store the ORIGINAL file untouched (no resize, no re-encode) so quality is preserved.
+        fmt = (Image.open(io.BytesIO(raw)).format or "JPEG").lower()
+        out_ext = {"jpeg": "jpg"}.get(fmt, fmt)
+        out_mime = mime
+        compressed = raw
     except Exception as e:
-        logging.error(f"Image compression failed: {e}")
+        logging.error(f"Image read failed: {e}")
         raise HTTPException(status_code=400, detail="Could not process image")
 
     # === Storage strategy ===

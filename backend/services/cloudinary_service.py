@@ -130,14 +130,11 @@ async def upload_image(db, file_bytes: bytes, folder: str = "celesta-glow", publ
         resource_type="image",
         overwrite=True,
         unique_filename=public_id is None,
-        quality="auto:best",
-        fetch_format="auto",
     )
     _url = res.get("secure_url") or res.get("url")
-    # Deliver every image crisp (near-lossless q_95) + auto modern format
-    # (webp/avif) so product photos stay sharp AND load fast. No downscale.
+    # Store the original untouched; deliver at full quality (q_100) + auto format.
     if _url and "res.cloudinary.com" in _url and "/upload/" in _url and "q_" not in _url:
-        _url = _url.replace("/upload/", "/upload/q_95,f_auto/", 1)
+        _url = _url.replace("/upload/", "/upload/q_100,f_auto/", 1)
     return {
         "url": _url,
         "public_id": res.get("public_id"),

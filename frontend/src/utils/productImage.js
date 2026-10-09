@@ -52,7 +52,7 @@ export function cldOptim(url, opts = {}) {
   const width = opts.w || opts.width || 400;
   const height = opts.h || opts.height || 0;
   const crop = opts.c || (height ? 'fill' : 'limit');
-  const parts = ['f_auto', 'q_auto', `w_${width}`];
+  const parts = ['f_auto', 'q_100', `w_${width}`];
   if (height) parts.push(`h_${height}`);
   parts.push(`c_${crop}`);
   return `${base}${parts.join(',')}/${rest}`;

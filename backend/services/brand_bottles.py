@@ -314,7 +314,7 @@ def hero_bytes(product: dict, size: int = 2048) -> bytes:
     b = bottle.resize((nw, target_h), Image.LANCZOS)
     canvas.paste(b, (int((size - nw) / 2), int((size - target_h) / 2)), b)
     buf = io.BytesIO()
-    canvas.save(buf, "JPEG", quality=97, subsampling=0, optimize=True, progressive=True)
+    canvas.save(buf, "PNG")
     return buf.getvalue()
 
 
@@ -342,5 +342,5 @@ def hero_bytes_from_reference(product: dict, ref_bytes: bytes, size: int = 2048)
     b = bottle.resize((nw, target_h), Image.LANCZOS)
     canvas.paste(b, (int((size - nw) / 2), int((size - target_h) / 2)), b)
     buf = io.BytesIO()
-    canvas.save(buf, "JPEG", quality=97, subsampling=0, optimize=True, progressive=True)
+    canvas.save(buf, "PNG")
     return buf.getvalue()

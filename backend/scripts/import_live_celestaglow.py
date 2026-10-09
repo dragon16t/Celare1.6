@@ -41,7 +41,7 @@ def localize(url: str) -> str:
                 if attempt == 4:
                     raise
                 time.sleep(3)
-        _CACHE[url] = res["secure_url"].replace("/image/upload/", "/image/upload/f_auto,q_auto:good,w_1600,c_limit/", 1)
+        _CACHE[url] = res["secure_url"].replace("/image/upload/", "/image/upload/f_auto,q_100/", 1)
     return _CACHE[url]
 
 

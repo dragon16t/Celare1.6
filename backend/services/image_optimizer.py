@@ -64,11 +64,11 @@ def optimize_cloudinary_url(url: str, width: int = 900, version: Optional[str] =
         # delivery params we own (q_/f_/w_) and rebuild crisp + right-sized,
         # preserving any other transforms (c_limit, g_, e_, ...).
         tail = rest.split("/", 1)[1] if "/" in rest else ""
-        keep = [p for p in first_seg.split(",") if not re.match(r"^(q_|f_|w_)", p)]
-        seg = f"f_auto,q_auto:good,w_{width}" + ("," + ",".join(keep) if keep else "")
+        keep = [p for p in first_seg.split(",") if not re.match(r"^(q_|f_|w_|c_limit$)", p)]
+        seg = f"f_auto,q_100,w_{width},c_limit" + ("," + ",".join(keep) if keep else "")
         out = f"{prefix}{seg}/{tail}" if tail else base
     else:
-        out = f"{prefix}f_auto,q_auto:good,w_{width}/{rest}"
+        out = f"{prefix}f_auto,q_100,w_{width},c_limit/{rest}"
     if version:
         sep = "&" if "?" in out else "?"
         return f"{out}{sep}_v={_cb_token(version)}"
