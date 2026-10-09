@@ -16,7 +16,7 @@ Endpoints:
     PUT    /api/admin/products/{slug}                update fields (price guard: prepaid_price/cod_price unchanged unless explicitly opted-in)
 """
 from __future__ import annotations
-from fastapi import APIRouter, Header, HTTPException, Cookie, Body, Query
+from fastapi import APIRouter, Header, HTTPException, Cookie, Body, Query, Form, File, UploadFile
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -947,7 +947,8 @@ def _bottle_kind(name: str, category: str) -> str:
 
 async def _ai_generate_product_image(name: str, brand: str, category: str,
                                      ref_images: Optional[list] = None,
-                                     extra_prompt: str = "") -> Optional[str]:
+                                     extra_prompt: str = "",
+                                     instructions: str = "") -> Optional[str]:
     """Generate a photorealistic product image with GEMINI and persist it.
 
     Ported from the brand's earlier project so the output matches the approved
@@ -994,6 +995,9 @@ async def _ai_generate_product_image(name: str, brand: str, category: str,
     if ref_images:
         prompt = ("Recreate the EXACT visual style, white background, lighting, green+grey typography and "
                   "composition of the provided reference product images, but for THIS product. " + prompt)
+    if (instructions or "").strip():
+        prompt += ("\n\nADMIN INSTRUCTIONS (highest priority — follow these exactly, they override the style "
+                   f"notes above where they conflict): {instructions.strip()}")
 
     out_bytes = None
     mime = "image/png"
@@ -1022,6 +1026,8 @@ async def _ai_generate_product_image(name: str, brand: str, category: str,
                     break
         except Exception as e:
             logger.warning(f"[img-gen] Gemini(direct) image failed: {e}")
+            from services.llm_helper import friendly_ai_error
+            raise ValueError(friendly_ai_error(e))
 
     if not out_bytes:
         return None, None
@@ -1115,6 +1121,110 @@ async def one_click_product_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+_regen_jobs: Dict[str, Any] = {}
+
+
+@router.post("/admin/products/{slug}/regenerate-image")
+async def regenerate_product_image(
+    slug: str,
+    prompt: str = Form(""),
+    references: List[UploadFile] = File(default=[]),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    admin_session: Optional[str] = Cookie(None),
+):
+    """Regenerate ONLY the main product photo with Gemini, optionally guided by
+    admin reference images + instructions. Returns a job_id; the new image is a
+    candidate until applied via /set-main-image."""
+    _auth(x_admin_token, admin_session)
+    product = await _db.products.find_one({"slug": slug}, {"_id": 0, "name": 1, "brand": 1, "category": 1,
+                                                           "subcategory": 1, "key_ingredients": 1})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY is not set on this server.")
+    refs = []
+    for f in (references or [])[:4]:
+        data = await f.read()
+        if len(data) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail=f"{f.filename} is larger than 10 MB")
+        if data:
+            refs.append(data)
+    if len(prompt) > 2000:
+        raise HTTPException(status_code=400, detail="Prompt too long (max 2000 characters)")
+
+    import asyncio as _aio
+    job_id = f"regen_{uuid.uuid4().hex[:10]}"
+    job = {"job_id": job_id, "slug": slug, "name": product.get("name"), "status": "running",
+           "step": "generating image", "result": None, "error": None,
+           "created_at": datetime.now(timezone.utc).isoformat()}
+    _regen_jobs[job_id] = job
+
+    async def _worker():
+        try:
+            ings = product.get("key_ingredients") or ""
+            extra = f"The formula's hero actives are: {ings}." if ings else ""
+            url, _bytes = await _ai_generate_product_image(
+                product.get("name") or slug, product.get("brand") or "Celesta Glow",
+                product.get("subcategory") or product.get("category") or "",
+                ref_images=refs or None, extra_prompt=extra, instructions=prompt)
+            if not url:
+                raise RuntimeError("Gemini did not return an image. Try adjusting the prompt.")
+            if "res.cloudinary.com" in url and "/upload/" in url and "q_" not in url:
+                url = url.replace("/upload/", "/upload/q_100,f_auto/", 1)
+            job.update(status="done", step="done", result={"image_url": url})
+        except Exception as e:
+            from services.llm_helper import friendly_ai_error
+            job.update(status="failed", error=friendly_ai_error(e) if "Gemini" not in str(e) else str(e)[:300])
+
+    _aio.create_task(_worker())
+    from services.job_store import start_mirror
+    start_mirror(_db, job)
+    return {"success": True, "job_id": job_id, "status": "running"}
+
+
+@router.get("/admin/products/regenerate-image-job/{job_id}")
+async def regenerate_image_job(
+    job_id: str,
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    admin_session: Optional[str] = Cookie(None),
+):
+    _auth(x_admin_token, admin_session)
+    from services.job_store import get_job
+    job = await get_job(_db, _regen_jobs, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+class SetMainImageRequest(BaseModel):
+    image_url: str
+
+
+@router.post("/admin/products/{slug}/set-main-image")
+async def set_main_image(
+    slug: str,
+    body: SetMainImageRequest,
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    admin_session: Optional[str] = Cookie(None),
+):
+    """Replace the product's main photo (images[0]); the rest of the gallery is kept."""
+    _auth(x_admin_token, admin_session)
+    if not body.image_url.startswith("https://res.cloudinary.com/"):
+        raise HTTPException(status_code=400, detail="Image must be a Cloudinary URL")
+    product = await _db.products.find_one({"slug": slug}, {"_id": 0, "images": 1})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    images = list(product.get("images") or [])
+    if images:
+        images[0] = body.image_url
+    else:
+        images = [body.image_url]
+    await _db.products.update_one({"slug": slug}, {"$set": {
+        "images": images, "image": body.image_url,
+        "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"success": True, "images": images}
 
 
 # ----------------------------------------------------------------------------
