@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { cldOptim } from '../utils/productImage';
 
 /**
  * NicheHero — single banner card with the artwork as background and text overlay
@@ -39,8 +40,10 @@ export default function NicheHero({
         {/* Background banner artwork — separate <img> for mobile vs desktop.
             Mobile gets a proper min-height + centered crop so the banner is
             never awkwardly cut/squished on small screens. */}
-        <img src={mobileImg} alt="" loading="eager" fetchpriority="high" decoding="async" aria-hidden className="absolute inset-0 w-full h-full object-cover object-center sm:hidden" />
-        <img src={bgImage}    alt="" loading="eager" fetchpriority="high" decoding="async" aria-hidden className="absolute inset-0 w-full h-full object-cover object-right hidden sm:block" />
+        <picture>
+          <source media="(min-width: 640px)" srcSet={cldOptim(bgImage, { w: 1600 })} />
+          <img src={cldOptim(mobileImg, { w: 800 })} alt="" loading="eager" fetchpriority="high" decoding="async" aria-hidden className="absolute inset-0 w-full h-full object-cover object-center sm:object-right" />
+        </picture>
 
         {/* Left-fading legibility overlay */}
         <div

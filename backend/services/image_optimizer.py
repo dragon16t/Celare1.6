@@ -65,10 +65,10 @@ def optimize_cloudinary_url(url: str, width: int = 900, version: Optional[str] =
         # preserving any other transforms (c_limit, g_, e_, ...).
         tail = rest.split("/", 1)[1] if "/" in rest else ""
         keep = [p for p in first_seg.split(",") if not re.match(r"^(q_|f_|w_)", p)]
-        seg = f"f_auto,q_95,w_{width}" + ("," + ",".join(keep) if keep else "")
+        seg = f"f_auto,q_auto:good,w_{width}" + ("," + ",".join(keep) if keep else "")
         out = f"{prefix}{seg}/{tail}" if tail else base
     else:
-        out = f"{prefix}f_auto,q_95,w_{width}/{rest}"
+        out = f"{prefix}f_auto,q_auto:good,w_{width}/{rest}"
     if version:
         sep = "&" if "?" in out else "?"
         return f"{out}{sep}_v={_cb_token(version)}"

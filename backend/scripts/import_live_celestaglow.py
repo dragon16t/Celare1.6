@@ -1,31 +1,48 @@
 """Import the 4 anti-aging products, kit, certificates and homepage banners from celestaglow.com.
-Images are downloaded into backend/uploads/live and URLs rewritten to /api/uploads/live/..."""
-import asyncio, hashlib, json, os, re
+Images are copied to our Cloudinary account (durable in preview + production) and the
+result is written to seed_data/celestaglow_live.json, which server startup applies."""
+import asyncio, hashlib, json, os, re, time
 from pathlib import Path
 import requests
+import cloudinary
+import cloudinary.uploader
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 LIVE = "https://celestaglow.com/api"
-OUT = ROOT / "uploads" / "live"
-OUT.mkdir(parents=True, exist_ok=True)
+SEED_FILE = ROOT / "seed_data" / "celestaglow_live.json"
+cloudinary.config(
+    cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+    api_key=os.environ["CLOUDINARY_API_KEY"],
+    api_secret=os.environ["CLOUDINARY_API_SECRET"],
+    secure=True,
+)
+_CACHE = {}
 URL_RE = re.compile(r'https://(?:res\.cloudinary\.com|customer-assets\.emergentagent\.com)[^"\s]+')
 SLUGS = ["anti-aging-serum", "sunscreen", "anti-aging-cream", "under-eye-cream"]
 
 
 def localize(url: str) -> str:
-    ext = os.path.splitext(url.split("?")[0])[1].lower() or ".jpg"
-    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
-        ext = ".jpg"
-    name = hashlib.md5(url.encode()).hexdigest()[:16] + ext
-    dest = OUT / name
-    if not dest.exists():
+    if f"res.cloudinary.com/{os.environ['CLOUDINARY_CLOUD_NAME']}/" in url:
+        return url
+    if url not in _CACHE:
         r = requests.get(url, timeout=60)
         r.raise_for_status()
-        dest.write_bytes(r.content)
-    return f"/api/uploads/live/{name}"
+        for attempt in range(5):
+            try:
+                res = cloudinary.uploader.upload(
+                    r.content, folder="celesta-glow/live-import",
+                    public_id=hashlib.md5(url.encode()).hexdigest()[:16], overwrite=False,
+                )
+                break
+            except Exception:
+                if attempt == 4:
+                    raise
+                time.sleep(3)
+        _CACHE[url] = res["secure_url"].replace("/image/upload/", "/image/upload/f_auto,q_auto:good,w_1600,c_limit/", 1)
+    return _CACHE[url]
 
 
 def rewrite(obj):
@@ -67,8 +84,16 @@ async def main():
     ba = rewrite(get("before-after"))
     await db.before_after_images.delete_many({})
     if ba:
-        await db.before_after_images.insert_many(ba)
-    print("imported", len(products), "products, files:", len(list(OUT.iterdir())))
+        await db.before_after_images.insert_many([dict(b) for b in ba])
+    combos = rewrite(get("combos"))
+    for c in combos:
+        c.pop("days_to_launch", None)
+    SEED_FILE.parent.mkdir(exist_ok=True)
+    SEED_FILE.write_text(json.dumps({
+        "products": products, "combos": combos, "site_settings": settings,
+        "top_banner": tb, "niche_mode": nm, "before_after": ba,
+    }, indent=1, default=str))
+    print("imported", len(products), "products, images:", len(_CACHE))
 
 
 if __name__ == "__main__":

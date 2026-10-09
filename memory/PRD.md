@@ -107,3 +107,11 @@ Original request: "Clone this git https://github.com/dragon16t/Celesta-final-upd
 - Integration keys (Razorpay, Cloudinary, Gemini, SMTP, Delhivery, Meta) are NOT in .env — payments/AI image gen/email inactive until added.
 Backlog: add integration keys; resync more products if needed by re-running import script.
 
+## Keys + Gemini-only AI + Icons + Speed — 2026-10-09
+- All keys in backend/.env (Gemini AQ.* key, Razorpay LIVE, Cloudinary dcvuqcqjn, Delhivery, Gmail SMTP, Meta CAPI, Google Maps); frontend .env has REACT_APP_GOOGLE_MAPS_API_KEY + REACT_APP_RAZORPAY_KEY_ID. Verified: Razorpay auth, SMTP login, Delhivery pincode, Maps geocode, Meta CAPI test event, Cloudinary upload.
+- Emergent LLM key disabled: server.py pops EMERGENT_LLM_KEY at boot; Emergent + Pollinations fallbacks removed from image_ai.generate_banner, gift_cards_and_ai image gen. All AI = direct Gemini.
+- Live images moved to Cloudinary (celesta-glow/live-import). services/live_seed.py applies seed_data/celestaglow_live.json + taxonomy_images.json at startup → production gets same products/banners/certs/icons.
+- scripts/generate_taxonomy_icons.py: Gemini icons in style of seed_data/icon_style_ref.jpg. Done: 14 concerns, 109 categories, 61/75 subcategories. 14 subcategories FAILED — Gemini prepaid credits depleted (402). Re-run script after top-up (resumable).
+- Speed: q_95→q_auto:good, widths 700/1200, top banner + hero optimized via <picture>, removed 3 unused ~165KB hero preloads in index.html.
+- Gemini one-click generator NOT re-verified (credits depleted).
+

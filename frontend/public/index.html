@@ -52,22 +52,7 @@
           })();
         </script>
 
-        <!-- Preload ONLY the first niche-switcher image with high priority — it
-             is the LCP candidate on mobile. The other two cards are below the
-             fold on a 375 px viewport; preloading all three at fetchpriority
-             "high" was forcing the browser to compete with critical render
-             resources and made LCP balloon to 13.9 s on mobile (PageSpeed
-             report, Jun 22 2026). Lower-priority preload = the browser
-             downloads them in the idle window after the LCP paints. -->
-        <link rel="preload" as="image" fetchpriority="high"
-              href="https://customer-assets.emergentagent.com/job_cg3-render/artifacts/egnbiizj_E86525F8-AFBE-4431-B212-D00E13DAFA1C.jpeg"
-              imagesrcset="https://customer-assets.emergentagent.com/job_cg3-render/artifacts/egnbiizj_E86525F8-AFBE-4431-B212-D00E13DAFA1C.jpeg" />
-        <link rel="preload" as="image"
-              href="https://customer-assets.emergentagent.com/job_cg3-render/artifacts/tpi0b3jj_171A56DB-E605-493B-94CA-E8823DD9BF61.jpeg"
-              media="(min-width: 768px)" />
-        <link rel="preload" as="image"
-              href="https://customer-assets.emergentagent.com/job_cg3-render/artifacts/0qo8dahm_ED352F30-0FBF-4C89-8FBE-F10AE07275B7.jpeg"
-              media="(min-width: 768px)" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
 
         <!-- Favicon -->
         <link rel="icon" href="%PUBLIC_URL%/favicon.ico" type="image/x-icon" />

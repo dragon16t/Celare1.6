@@ -187,9 +187,12 @@ async def public_top_banner(response: Response):
     """Public: get the homepage top banner (image + click destination)."""
     response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
     doc = await db.admin_settings.find_one({"type": "top_banner"}, {"_id": 0}) or {}
+    from services.image_optimizer import optimize_cloudinary_url as _opt
+    desktop = doc.get("image_desktop") or ""
+    mobile = doc.get("image_mobile") or desktop
     return {
-        "image_desktop": doc.get("image_desktop") or "",
-        "image_mobile": doc.get("image_mobile") or doc.get("image_desktop") or "",
+        "image_desktop": _opt(desktop, 1600) if desktop else "",
+        "image_mobile": _opt(mobile, 800) if mobile else "",
         "link_url": doc.get("link_url") or "/shop?niche=anti-aging",
         "is_active": bool(doc.get("is_active", True)),
     }
@@ -709,7 +712,7 @@ async def get_all_products(
     # without re-uploading anything. Card images use 600px; detail uses 1200.
     try:
         from services.image_optimizer import optimize_products_list
-        optimize_products_list(products, width=900 if lean else 1400)
+        optimize_products_list(products, width=700 if lean else 1200)
     except Exception as e:
         logging.warning(f"[products] image optimize failed: {e}")
 
@@ -791,7 +794,7 @@ async def get_products_batch(data: Dict[str, Any]):
     items.sort(key=lambda p: order.get(p.get("slug"), 9999))
     try:
         from services.image_optimizer import optimize_products_list
-        optimize_products_list(items, width=900)
+        optimize_products_list(items, width=700)
     except Exception:
         pass
     await _apply_sale(items)
@@ -860,7 +863,7 @@ async def get_product(slug: str):
             pass
     try:
         from services.image_optimizer import optimize_product_images
-        optimize_product_images(product, width=1400)
+        optimize_product_images(product, width=1200)
     except Exception:
         pass
     # Sale-mode overlay (Feb-2026)

@@ -1020,49 +1020,6 @@ async def _ai_generate_product_image(name: str, brand: str, category: str,
         except Exception as e:
             logger.warning(f"[img-gen] Gemini(direct) image failed: {e}")
 
-    # 2) Gemini Nano Banana via Emergent LLM key (image-out modality) — fallback
-    #    (works locally; blocked externally on the free plan).
-    if not out_bytes:
-        emergent_key = os.environ.get("EMERGENT_LLM_KEY")
-        if emergent_key:
-            try:
-                from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-                file_contents = []
-                for rb in (ref_images or []):
-                    try:
-                        file_contents.append(ImageContent(_b64.b64encode(rb).decode("utf-8")))
-                    except Exception:
-                        pass
-                chat = LlmChat(
-                    api_key=emergent_key, session_id=f"prodimg-{uuid.uuid4().hex[:8]}",
-                    system_message="You are a skincare-brand visual designer that produces photorealistic, premium product images on a clean white background.",
-                )
-                chat.with_model("gemini", "gemini-2.5-flash-image").with_params(modalities=["image", "text"])
-                msg = UserMessage(text=prompt, file_contents=file_contents or None)
-                _text, images = await chat.send_message_multimodal_response(msg)
-                if images:
-                    out_bytes = _b64.b64decode(images[0]["data"])
-                    mime = images[0].get("mime_type", "image/png")
-            except Exception as e:
-                logger.warning(f"[img-gen] Gemini(Emergent) image failed: {e}")
-
-    # 3) Pollinations (free, text-only) as final fallback
-    if not out_bytes:
-        try:
-            import httpx as _httpx
-            from urllib.parse import quote as _q
-            url = (
-                f"https://image.pollinations.ai/prompt/{_q(prompt)}"
-                f"?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed={uuid.uuid4().int % 10_000_000}"
-            )
-            async with _httpx.AsyncClient(timeout=45.0, follow_redirects=True) as hc:
-                r = await hc.get(url)
-                if r.status_code == 200 and r.content and len(r.content) > 1024:
-                    out_bytes = r.content
-                    mime = r.headers.get("content-type", "image/jpeg").split(";")[0]
-        except Exception as e:
-            logger.warning(f"[img-gen] Pollinations image failed: {e}")
-
     if not out_bytes:
         return None, None
 
@@ -1633,27 +1590,9 @@ def _load_refs(folder: str) -> list:
 
 
 async def _image_via_providers(prompt: str, ref_images: list) -> tuple:
-    """Run the Gemini→direct→Pollinations chain. Returns (bytes|None, mime)."""
-    import base64 as _b64
+    """Direct Gemini image generation only. Returns (bytes|None, mime)."""
+    import asyncio as _aio
     out_bytes, mime = None, "image/png"
-    ek = os.environ.get("EMERGENT_LLM_KEY")
-    if ek:
-        try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
-            fc = []
-            for rb in (ref_images or []):
-                try:
-                    fc.append(ImageContent(_b64.b64encode(rb).decode("utf-8")))
-                except Exception:
-                    pass
-            chat = LlmChat(api_key=ek, session_id=f"mkt-{uuid.uuid4().hex[:8]}",
-                           system_message="You are a premium skincare-brand visual designer.")
-            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
-            _t, imgs = await chat.send_message_multimodal_response(UserMessage(text=prompt, file_contents=fc or None))
-            if imgs:
-                out_bytes = _b64.b64decode(imgs[0]["data"]); mime = imgs[0].get("mime_type", "image/png")
-        except Exception as e:
-            logger.warning(f"[mkt-img] Gemini(Emergent) failed: {e}")
     if not out_bytes:
         gk = os.environ.get("GEMINI_API_KEY")
         if gk:
@@ -1662,25 +1601,13 @@ async def _image_via_providers(prompt: str, ref_images: list) -> tuple:
                 from google.genai import types as _gt
                 cli = genai.Client(api_key=gk)
                 parts = [prompt] + [_gt.Part.from_bytes(data=rb, mime_type="image/png") for rb in (ref_images or [])]
-                resp = cli.models.generate_content(model="gemini-2.5-flash-image", contents=parts)
+                resp = await _aio.to_thread(cli.models.generate_content, model="gemini-2.5-flash-image", contents=parts)
                 for part in (resp.candidates[0].content.parts if resp.candidates else []):
                     inl = getattr(part, "inline_data", None)
                     if inl and getattr(inl, "data", None):
                         out_bytes = inl.data; mime = inl.mime_type or "image/png"; break
             except Exception as e:
                 logger.warning(f"[mkt-img] Gemini(direct) failed: {e}")
-    if not out_bytes:
-        try:
-            import httpx as _httpx
-            from urllib.parse import quote as _q
-            url = (f"https://image.pollinations.ai/prompt/{_q(prompt)}"
-                   f"?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed={uuid.uuid4().int % 10_000_000}")
-            async with _httpx.AsyncClient(timeout=90.0, follow_redirects=True) as hc:
-                r = await hc.get(url)
-                if r.status_code == 200 and r.content and len(r.content) > 1024:
-                    out_bytes = r.content; mime = r.headers.get("content-type", "image/jpeg").split(";")[0]
-        except Exception as e:
-            logger.warning(f"[mkt-img] Pollinations failed: {e}")
     return out_bytes, mime
 
 

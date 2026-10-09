@@ -56,6 +56,8 @@ from services.gift_card_service import GiftCardService
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+# All AI generation must use the direct Gemini key only.
+os.environ.pop('EMERGENT_LLM_KEY', None)
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -3826,6 +3828,12 @@ async def _run_heavy_startup_tasks():
         logging.info(f"[bg-startup][taxonomy_canonical] post-startup reclassify: updated={rerun.get('updated')}")
     except Exception as e:
         logging.warning(f"[bg-startup][taxonomy_canonical] post-startup reclassify skipped: {e}")
+
+    try:
+        from services.live_seed import apply_live_seed
+        await apply_live_seed(db)
+    except Exception as e:
+        logging.error(f"[bg-startup][live_seed] failed: {e}")
 
     logging.info("[bg-startup] heavy startup tasks complete")
 

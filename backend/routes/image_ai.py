@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Header, Form, File, UploadFile
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+from emergentintegrations.llm.chat import UserMessage, ImageContent
 from services.gemini_llm import GeminiChat
 
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -390,53 +390,10 @@ async def generate_banner(
         except Exception as e:
             logger.warning(f"[banner-ai] Gemini (primary) failed: {e}")
 
-    # --- 2. Emergent LLM key fallback ---
-    if not out_bytes:
-        emergent_key = os.environ.get("EMERGENT_LLM_KEY")
-        if emergent_key:
-            try:
-                file_contents = []
-                if ref_bytes:
-                    file_contents.append(ImageContent(base64.b64encode(ref_bytes).decode("utf-8")))
-                chat = LlmChat(
-                    api_key=emergent_key,
-                    session_id=f"banner-{uuid.uuid4().hex[:8]}",
-                    system_message="You are a skincare-brand visual designer that produces photorealistic, premium banner images.",
-                )
-                chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
-                msg = UserMessage(text=full_prompt, file_contents=file_contents or None)
-                _text, images = await chat.send_message_multimodal_response(msg)
-                if images:
-                    out_bytes = base64.b64decode(images[0]["data"])
-                    mime = images[0].get("mime_type", "image/png")
-            except Exception as e:
-                logger.warning(f"[banner-ai] Emergent fallback failed: {e}")
-
-    # --- 3. Pollinations.ai (free, last resort) ---
-    if not out_bytes:
-        try:
-            import httpx as _httpx
-            from urllib.parse import quote as _q
-            # `nologo=true` strips the Pollinations watermark. `enhance=true` improves
-            # composition. `model=flux` is FLUX-Schnell — high quality, free.
-            url = (
-                f"https://image.pollinations.ai/prompt/{_q(full_prompt)}"
-                f"?width={cfg['w']}&height={cfg['h']}&model=flux&nologo=true&enhance=true&seed={uuid.uuid4().int % 10_000_000}"
-            )
-            async with _httpx.AsyncClient(timeout=90.0, follow_redirects=True) as _hc:
-                r = await _hc.get(url)
-                if r.status_code == 200 and r.content and len(r.content) > 1024:
-                    out_bytes = r.content
-                    mime = r.headers.get("content-type", "image/jpeg").split(";")[0]
-                else:
-                    logger.warning(f"[banner-ai] Pollinations returned {r.status_code} / {len(r.content)} bytes")
-        except Exception as e:
-            logger.warning(f"[banner-ai] Pollinations failed: {e}")
-
     if not out_bytes:
         raise HTTPException(
             status_code=502,
-            detail="All image-gen providers failed. Try a different prompt, or set GEMINI_API_KEY / EMERGENT_LLM_KEY with quota."
+            detail="Gemini image generation failed. Try a different prompt or check GEMINI_API_KEY quota."
         )
 
     # ---- Push to Cloudinary (no local-disk fallback in prod) ----
