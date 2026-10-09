@@ -57,6 +57,8 @@ def _parts_from(user_message):
 
 class GeminiChat:
     def __init__(self, api_key, session_id=None, system_message=""):
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set on this server. Add it to the backend environment / deployment secrets.")
         self._key = api_key
         self._system = system_message or ""
         self._model = None
@@ -120,12 +122,19 @@ class GeminiChat:
             except Exception as e:
                 logger.warning(f"[gemini-chat] text model '{model}' failed: {str(e)[:110]}")
                 last_err = e
-        raise last_err or RuntimeError("Gemini returned an empty response")
+                if "402" in str(e) or "API_KEY_INVALID" in str(e):
+                    break
+        from services.llm_helper import friendly_ai_error
+        raise ValueError(friendly_ai_error(last_err or "Gemini returned an empty response"))
 
     def _gen_image_sync(self, user_message):
         client = _client(self._key)
         parts = ([self._system] if self._system else []) + _parts_from(user_message)
-        resp = client.models.generate_content(model=_IMAGE_MODEL, contents=parts)
+        try:
+            resp = client.models.generate_content(model=_IMAGE_MODEL, contents=parts)
+        except Exception as e:
+            from services.llm_helper import friendly_ai_error
+            raise ValueError(friendly_ai_error(e))
         text_out = ""
         images = []
         for part in (resp.candidates[0].content.parts if resp.candidates else []):

@@ -1338,9 +1338,7 @@ Tone: trustworthy, clinical-but-warm, India-aware. Avoid "miracle"/"instant cure
     except Exception as e:
         raise HTTPException(
             status_code=503,
-            detail=("AI content generation is temporarily unavailable. If you are on the deployed site, "
-                    "ensure GEMINI_API_KEY is added as a deployment secret (or the plan allows the universal key). "
-                    f"Detail: {str(e)[:140]}"),
+            detail=f"AI content generation failed: {str(e)[:220]}",
         )
 
     def _to_int(v):
