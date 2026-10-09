@@ -1162,6 +1162,8 @@ async def generate_product_variations(
         "error": None, "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _aio.create_task(_variation_worker(job_id, slug, concern_slug, concern_label))
+    from services.job_store import start_mirror
+    start_mirror(db, _variation_jobs[job_id])
     return {"success": True, "job_id": job_id, "status": "running"}
 
 
@@ -1171,7 +1173,8 @@ async def generate_variations_status(
     x_admin_token: str = Header(None, alias="X-Admin-Token"),
 ):
     verify_auth(x_admin_token=x_admin_token)
-    job = _variation_jobs.get(job_id)
+    from services.job_store import get_job
+    job = await get_job(db, _variation_jobs, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job

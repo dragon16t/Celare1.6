@@ -7,7 +7,7 @@ from pathlib import Path
 
 SEED = Path(__file__).resolve().parents[1] / "seed_data"
 LIVE_VERSION = "celestaglow-live-v1"
-TAXO_VERSION = "taxonomy-icons-v1"
+TAXO_VERSION = "taxonomy-icons-v2"
 logger = logging.getLogger(__name__)
 
 

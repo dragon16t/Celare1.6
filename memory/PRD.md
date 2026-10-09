@@ -116,6 +116,7 @@ Backlog: add integration keys; resync more products if needed by re-running impo
 - Gemini one-click generator NOT re-verified (credits depleted).
 
 ## No-compression images — 2026-10-09
+- Background jobs (one-click, bulk generate, bulk AI fill, 24 variations) mirrored to Mongo `ai_jobs` via services/job_store.py → no more "Job not found" across workers/restarts. Verified one-click via admin UI end-to-end (Gemini credits restored). All 14 missing subcategory icons generated; taxonomy_images.json rebuilt from DB, TAXO_VERSION v2.
 - Admin upload stores original bytes untouched (no resize/re-encode); Cloudinary upload has no incoming quality transform. Generated art (durable_images, brand_bottles, AI hi-res) saved as lossless PNG.
 - Delivery everywhere: f_auto,q_100 (+ w_ c_limit, never upscales). Product detail 1600, grid 800, top banner 1600/1200. Verified: uploaded 2400px PNG returned pixel-identical.
 

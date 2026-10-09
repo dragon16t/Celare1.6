@@ -531,6 +531,8 @@ async def bulk_ai_fill(
     }
     import asyncio as _aio
     _aio.create_task(_bulk_fill_worker(job_id, slugs, body.concurrency))
+    from services.job_store import start_mirror
+    start_mirror(_db, _bulk_ai_jobs[job_id])
     return {"success": True, "job_id": job_id, "queued": len(slugs)}
 
 
@@ -541,7 +543,8 @@ async def bulk_ai_fill_status(
     admin_session: Optional[str] = Cookie(None),
 ):
     _auth(x_admin_token, admin_session)
-    job = _bulk_ai_jobs.get(job_id)
+    from services.job_store import get_job
+    job = await get_job(_db, _bulk_ai_jobs, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
@@ -1095,6 +1098,8 @@ async def one_click_product(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _aio.create_task(_one_click_worker(job_id, body))
+    from services.job_store import start_mirror
+    start_mirror(_db, _one_click_jobs[job_id])
     return {"success": True, "job_id": job_id, "status": "running"}
 
 
@@ -1105,7 +1110,8 @@ async def one_click_product_job(
     admin_session: Optional[str] = Cookie(None),
 ):
     _auth(x_admin_token, admin_session)
-    job = _one_click_jobs.get(job_id)
+    from services.job_store import get_job
+    job = await get_job(_db, _one_click_jobs, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
@@ -1158,6 +1164,8 @@ async def bulk_generate_products(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _aio.create_task(_bulk_generate_worker(job_id, body, items))
+    from services.job_store import start_mirror
+    start_mirror(_db, _bulk_gen_jobs[job_id])
     return {"success": True, "job_id": job_id, "total": len(items), "status": "running"}
 
 
@@ -1168,7 +1176,8 @@ async def bulk_generate_job(
     admin_session: Optional[str] = Cookie(None),
 ):
     _auth(x_admin_token, admin_session)
-    job = _bulk_gen_jobs.get(job_id)
+    from services.job_store import get_job
+    job = await get_job(_db, _bulk_gen_jobs, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
