@@ -32,13 +32,12 @@ async def apply_live_seed(db):
         if not await _flag(db, LIVE_VERSION):
             for p in data.get("products", []):
                 await db.products.update_one({"slug": p["slug"]}, {"$set": {k: v for k, v in p.items() if k != "_id"}})
-            await db.products.delete_many({"slug": "cleanser"})
+            await db.products.update_many({"slug": "cleanser"}, {"$set": {"is_active": False}})
             settings = {k: v for k, v in data.get("site_settings", {}).items() if not k.startswith("taxonomy_canonical")}
             await db.site_settings.update_one({"_id": "main"}, {"$set": settings}, upsert=True)
             await db.admin_settings.update_one({"type": "top_banner"}, {"$set": {"type": "top_banner", **data.get("top_banner", {})}}, upsert=True)
             await db.admin_settings.update_one({"type": "niche_mode"}, {"$set": {"type": "niche_mode", **data.get("niche_mode", {})}}, upsert=True)
-            if data.get("before_after"):
-                await db.before_after_images.delete_many({})
+            if data.get("before_after") and not await db.before_after_images.count_documents({}):
                 await db.before_after_images.insert_many([dict(b) for b in data["before_after"]])
             await _set_flag(db, LIVE_VERSION)
             logger.info("[live_seed] applied %s", LIVE_VERSION)

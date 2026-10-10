@@ -199,7 +199,7 @@ async def send_order_confirmation_email(order: Order, referral_data: dict = None
         referral_block_html = ""
         if referral_data and referral_data.get("referral_code"):
             ref_link = referral_data.get("referral_link",
-                f"https://celestaglow.com?ref={referral_data['referral_code']}")
+                f"{os.environ.get('PUBLIC_SITE_URL') or 'https://celestaglow.com'}?ref={referral_data['referral_code']}")
             referral_block_html = (
                 f"<div style=\"background:linear-gradient(135deg,#10b981,#059669);"
                 f"color:#fff;padding:20px;margin-top:25px;border-radius:10px;text-align:center;\">"

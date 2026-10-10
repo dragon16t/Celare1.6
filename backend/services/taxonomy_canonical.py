@@ -1578,12 +1578,18 @@ async def reset_canonical_taxonomy(db) -> dict:
     preserved_categories = await _snapshot_visuals("categories")
     preserved_subcategories = await _snapshot_visuals("subcategories")
 
-    # 1. Wipe legacy concerns (keep none — full reset).
-    await db.concerns.delete_many({})
-    # 2. Wipe skincare + cosmetics categories.
-    await db.categories.delete_many({"niche": {"$in": ["skincare", "cosmetics"]}})
-    # 3. Wipe skincare + cosmetics subcategories.
-    await db.subcategories.delete_many({"niche": {"$in": ["skincare", "cosmetics"]}})
+    # 1-3. Non-destructive: archive existing rows (is_active=False), then the
+    # canonical rows below are upserted back to active. Nothing is deleted.
+    await db.concerns.update_many({}, {"$set": {"is_active": False}})
+    await db.categories.update_many({"niche": {"$in": ["skincare", "cosmetics"]}}, {"$set": {"is_active": False}})
+    await db.subcategories.update_many({"niche": {"$in": ["skincare", "cosmetics"]}}, {"$set": {"is_active": False}})
+
+    async def _upsert_all(coll, docs, keys):
+        for d in docs:
+            body = {k: v for k, v in d.items() if k != "created_at"}
+            await db[coll].update_one({k: d.get(k) for k in keys},
+                                      {"$set": body, "$setOnInsert": {"created_at": d.get("created_at")}},
+                                      upsert=True)
 
     # 4. Seed concerns (13 mains, each with subs array).
     concern_docs = []
@@ -1614,7 +1620,7 @@ async def reset_canonical_taxonomy(db) -> dict:
         "created_at": now, "updated_at": now,
     })
     if concern_docs:
-        await db.concerns.insert_many(concern_docs, ordered=False)
+        await _upsert_all("concerns", concern_docs, ["slug"])
 
     # 5. Seed skincare categories + subcategories.
     cat_docs, sub_docs = [], []
@@ -1672,9 +1678,9 @@ async def reset_canonical_taxonomy(db) -> dict:
             })
 
     if cat_docs:
-        await db.categories.insert_many(cat_docs, ordered=False)
+        await _upsert_all("categories", cat_docs, ["slug", "niche", "is_parent"])
     if sub_docs:
-        await db.subcategories.insert_many(sub_docs, ordered=False)
+        await _upsert_all("subcategories", sub_docs, ["slug", "niche"])
 
     # 6b. Re-apply admin-curated visual overrides captured before the wipe.
     # We only $set fields that have a non-empty preserved value — so the
@@ -1971,7 +1977,7 @@ async def reclassify_all_products(db, batch_log: int = 500,
         {},
         {"_id": 0, "slug": 1, "name": 1, "description": 1, "brand": 1,
          "niche": 1, "category": 1, "subcategory": 1, "concerns": 1,
-         "is_active": 1}
+         "is_active": 1, "hidden_reason": 1}
     )
     async for prod in cur:
         # ---- BRAND MASTER BRAIN — sub-brand prefix + typo normalisation ----
@@ -2034,10 +2040,12 @@ async def reclassify_all_products(db, batch_log: int = 500,
         # one-flip admin action.
         if result["niche"] == "haircare" and prod.get("is_active", True) is not False:
             upd["is_active"] = False
-        # Conversely, if a product was hidden as haircare but is no longer
-        # classified haircare (e.g. classifier improvement), re-enable it.
-        elif result["niche"] != "haircare" and prod.get("is_active") is False:
+            upd["hidden_reason"] = "haircare"
+        # Re-enable only products this classifier hid — never admin-hidden ones.
+        elif (result["niche"] != "haircare" and prod.get("is_active") is False
+              and prod.get("hidden_reason") == "haircare"):
             upd["is_active"] = True
+            upd["hidden_reason"] = None
 
         # ---- CONCERN INFERENCE FALLBACK — fill the long tail the keyword
         # classifier misses, but ONLY for skincare/anti-aging niches.
