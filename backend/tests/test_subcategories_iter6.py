@@ -7,7 +7,7 @@ import os
 import time
 import requests
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://weather-preview-6.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://glow-celesta-v.preview.emergentagent.com').rstrip('/')
 ADMIN = os.environ.get('ADMIN_PASSWORD', 'celestaglow2024')
 H = {"Content-Type": "application/json", "X-Admin-Token": ADMIN}
 

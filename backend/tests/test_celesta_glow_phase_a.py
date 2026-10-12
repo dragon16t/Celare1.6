@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ecom-clone-13.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://glow-celesta-v.preview.emergentagent.com").rstrip("/")
 ADMIN_TOKEN = "celestaglow2024"
 HEADERS_ADMIN = {"X-Admin-Token": ADMIN_TOKEN, "Content-Type": "application/json"}
 

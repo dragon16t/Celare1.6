@@ -14,9 +14,9 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://design-cgu.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://glow-celesta-v.preview.emergentagent.com").rstrip("/")
 ADMIN_TOKEN = os.environ.get("ADMIN_PASSWORD", "celestaglow2024")
-ORIGIN = "https://design-cgu.preview.emergentagent.com"
+ORIGIN = "https://glow-celesta-v.preview.emergentagent.com"
 
 ADMIN_HEADERS = {"X-Admin-Token": ADMIN_TOKEN, "Content-Type": "application/json"}
 
@@ -108,7 +108,7 @@ class TestEmployees:
         assert login_url == f"{ORIGIN}/employee/login", (
             f"BUG: login_url should use public Origin {ORIGIN} but got '{login_url}'. "
             "The Origin header sent by the admin UI appears to be overwritten by the K8s ingress. "
-            "Recommend: set PUBLIC_APP_URL=https://design-cgu.preview.emergentagent.com in backend/.env."
+            "Recommend: set PUBLIC_APP_URL=https://glow-celesta-v.preview.emergentagent.com in backend/.env."
         )
 
     def test_employee_login_returns_token(self):

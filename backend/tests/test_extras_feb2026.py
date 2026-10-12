@@ -4,7 +4,7 @@ import uuid
 import requests
 import pytest
 
-BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://weather-preview-6.preview.emergentagent.com").rstrip("/")
+BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://glow-celesta-v.preview.emergentagent.com").rstrip("/")
 ADMIN = {"X-Admin-Token": "celestaglow2024"}
 TILE_SLUG = f"test-tile-{uuid.uuid4().hex[:6]}"
 CAMPAIGN_SLUG = f"test-camp-{uuid.uuid4().hex[:6]}"

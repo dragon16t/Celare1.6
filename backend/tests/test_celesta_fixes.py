@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://design-cgu.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://glow-celesta-v.preview.emergentagent.com").rstrip("/")
 DEFAULT_ADMIN_PW = "celestaglow2024"
 NEW_ADMIN_PW = "newcelesta2026"
 

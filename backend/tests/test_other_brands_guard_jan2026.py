@@ -4,7 +4,7 @@ import requests
 import pytest
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://weather-preview-6.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://glow-celesta-v.preview.emergentagent.com").rstrip("/")
 ADMIN_TOKEN = "celestaglow2024"
 ADMIN_HEADERS = {"X-Admin-Token": ADMIN_TOKEN, "Content-Type": "application/json"}
 

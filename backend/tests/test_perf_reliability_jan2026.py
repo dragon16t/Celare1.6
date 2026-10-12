@@ -14,7 +14,7 @@ BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 LOCAL_URL = "http://localhost:8001"
 
 if not BASE_URL:
-    BASE_URL = "https://weather-preview-6.preview.emergentagent.com"
+    BASE_URL = "https://glow-celesta-v.preview.emergentagent.com"
 
 
 # ---------- Health ----------

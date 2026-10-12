@@ -5,7 +5,7 @@ import io
 import pytest
 import requests
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ecom-launch-27.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://glow-celesta-v.preview.emergentagent.com').rstrip('/')
 ADMIN_TOKEN = "celestaglow2024"
 HDR = {"X-Admin-Token": ADMIN_TOKEN}
 
