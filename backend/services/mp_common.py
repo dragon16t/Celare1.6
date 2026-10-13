@@ -230,16 +230,22 @@ async def wallet_balance(owner_type: str, owner_id: str) -> float:
 
 
 async def wallet_move(owner_type: str, owner_id: str, amount: float, kind: str, ref: str, booking_id: str = "",
-                      meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Atomic ledger move. kind: credit|debit. Raises 400 on insufficient funds."""
+                      meta: Optional[Dict[str, Any]] = None, allow_negative: bool = False) -> Dict[str, Any]:
+    """Atomic ledger move. kind: credit|debit. Raises 400 on insufficient funds unless
+    allow_negative (used for cash-booking commission the provider owes the platform)."""
     if amount <= 0:
         raise HTTPException(400, "Amount must be positive")
     if kind == "debit":
-        w = await _db.mp_wallets.find_one_and_update(
-            {"owner_type": owner_type, "owner_id": owner_id, "balance": {"$gte": amount}},
-            {"$inc": {"balance": -amount}}, upsert=False, return_document=True)
-        if not w:
-            raise HTTPException(400, "Insufficient wallet balance")
+        if allow_negative:
+            w = await _db.mp_wallets.find_one_and_update(
+                {"owner_type": owner_type, "owner_id": owner_id},
+                {"$inc": {"balance": -amount}}, upsert=True, return_document=True)
+        else:
+            w = await _db.mp_wallets.find_one_and_update(
+                {"owner_type": owner_type, "owner_id": owner_id, "balance": {"$gte": amount}},
+                {"$inc": {"balance": -amount}}, upsert=False, return_document=True)
+            if not w:
+                raise HTTPException(400, "Insufficient wallet balance")
     else:
         w = await _db.mp_wallets.find_one_and_update(
             {"owner_type": owner_type, "owner_id": owner_id},

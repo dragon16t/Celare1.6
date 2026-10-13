@@ -9,8 +9,9 @@ import MpReviews from '../../components/admin/MpReviews';
 import { PlatformWallet } from './AdminPartnerHub';
 import { IndianRupee, FileEdit } from 'lucide-react';
 import MpContentManager from '../../components/admin/MpContentManager';
+import MpWithdrawals from '../../components/admin/MpWithdrawals';
 import MpUpdates from '../../components/admin/MpUpdates';
-import { Megaphone } from 'lucide-react';
+import { Megaphone, Wallet } from 'lucide-react';
 
 const tabs = [
   ['doctors', 'Doctors & Applications', Users],
@@ -19,6 +20,7 @@ const tabs = [
   ['categories', 'Categories & Images', LayoutGrid],
   ['reviews', 'Reviews', Star],
   ['earnings', 'Platform Earnings', IndianRupee],
+  ['withdrawals', 'Withdrawal Requests', Wallet],
   ['support', 'Support Tickets', LifeBuoy],
   ['updates', 'Updates', Megaphone],
   ['settings', 'Settings', Settings],
@@ -44,6 +46,7 @@ const AdminDoctorHub = () => {
       {tab === 'categories' && <MpCategories module="doctor" />}
       {tab === 'reviews' && <MpReviews module="consultation" />}
       {tab === 'earnings' && <PlatformWallet />}
+      {tab === 'withdrawals' && <MpWithdrawals ownerType="doctor" />}
       {tab === 'support' && <AdminSupport userType="doctor" />}
       {tab === 'updates' && <MpUpdates module="doctor" />}
       {tab === 'settings' && <MpSettings module="doctor" />}

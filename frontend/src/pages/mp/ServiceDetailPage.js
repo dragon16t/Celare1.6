@@ -152,7 +152,7 @@ const ServiceDetailPage = () => {
                 <DiscountBadge pct={discount} />
               </div>
               <div className="mt-4" data-testid="gender-picker">
-                <p className="text-[11px] font-bold text-stone-500 uppercase mb-1.5">Staff preference *</p>
+                <p className="text-[11px] font-bold text-stone-500 uppercase mb-1.5">Select your gender *</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[['female', 'Female staff'], ['male', 'Male staff']].map(([g, label]) => (
                     <button type="button" key={g} onClick={() => { setGender(g); setPro(''); }} data-testid={`gender-${g}`}
@@ -160,7 +160,7 @@ const ServiceDetailPage = () => {
                   ))}
                 </div>
                 {gender === 'female' && <p className="text-[11px] text-pink-800 bg-pink-50 border border-pink-100 rounded-xl p-2.5 mt-2" data-testid="female-note">Only partners with female staff get this booking — a female professional will visit you.</p>}
-                {gender && partners.length === 0 && <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-2.5 mt-2" data-testid="no-gender-partner">No {gender} staff available for this service right now.</p>}
+                {gender && partners.length === 0 && <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-2.5 mt-2" data-testid="no-gender-partner">{gender === 'female' ? 'No nearby female staff near you right now.' : 'No staff available for this service right now.'}</p>}
               </div>
               {gender && partners.length > 0 && (
                 <div className="mt-3" data-testid="pro-picker">

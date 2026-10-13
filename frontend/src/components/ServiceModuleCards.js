@@ -62,11 +62,11 @@ const ServiceModuleCards = () => {
   return (
     <div data-testid="service-modules-section">
       {cfg.dermatologist_enabled && doctorCats.length > 0 && (
-        <ModuleSection module="doctor" title="What is your skin telling you?" subtitle="Online Consult"
+        <ModuleSection module="doctor" title="Book a Nearby Dermatologist" subtitle="Online Consult"
           base="/doctors" cats={doctorCats} />
       )}
       {cfg.home_services_enabled && serviceCats.length > 0 && (
-        <ModuleSection module="service" title="Salon glow, without leaving home" subtitle="Health & Beauty at Home"
+        <ModuleSection module="service" title="Glow Without Leaving Home" subtitle="Health & Beauty at Home"
           base="/services" cats={serviceCats} />
       )}
     </div>

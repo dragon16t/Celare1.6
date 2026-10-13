@@ -133,12 +133,10 @@ async def _settle(booking: Dict[str, Any], kind: str):
             "platform_total": round(paid - earning, 2)}
     platform = round(paid - earning, 2)
     if kind == "home" and booking.get("payment_method") == "pay_after_service":
-        meta["note"] = "Cash collected by you — commission is settled from your wallet"
-        await Db.mp_wallet_ledger.insert_one({
-            "entry_id": mp.uid("led"), "owner_type": owner_type, "owner_id": owner_id, "type": "info",
-            "amount": earning, "balance_after": await mp.wallet_balance(owner_type, owner_id),
-            "ref": "settlement", "booking_id": booking["booking_id"], "at": mp.now(), "meta": meta})
+        meta["note"] = "Cash collected by you — platform commission owed is deducted from your wallet"
         if platform > 0:
+            await mp.wallet_move(owner_type, owner_id, platform, "debit", "commission due (cash booking)",
+                                 booking["booking_id"], meta, allow_negative=True)
             await mp.wallet_move("platform", "main", platform, "credit", "Celesta commission (cash booking — receivable)",
                                  booking["booking_id"], meta)
     else:
@@ -786,11 +784,29 @@ async def _wallet_terms(ledger: List[Dict[str, Any]]) -> Dict[str, Any]:
             "total_earned": round(sum(m.get("you_earn", 0) for m in settled), 2)}
 
 
+MIN_WITHDRAW = 100.0
+MAX_WITHDRAW_PER_DAY = 2
+
+
+async def _guard_withdraw(owner_type: str, owner_id: str, amount: float):
+    """Shared withdrawal rules for doctors & partners: min ₹100, ≤ balance, max 2/day."""
+    if amount < MIN_WITHDRAW:
+        raise HTTPException(400, f"Minimum withdrawal is ₹{int(MIN_WITHDRAW)}")
+    bal = await mp.wallet_balance(owner_type, owner_id)
+    if amount > bal:
+        raise HTTPException(400, f"You can withdraw at most ₹{bal:.2f}")
+    day_start = mp.now()[:10] + "T00:00:00"
+    today = await Db.mp_withdrawals.count_documents(
+        {"owner_type": owner_type, "owner_id": owner_id, "at": {"$gte": day_start}})
+    if today >= MAX_WITHDRAW_PER_DAY:
+        raise HTTPException(400, "You can withdraw at most twice a day")
+
+
 @router.post("/doctor/withdraw")
 async def doctor_withdraw(body: Dict[str, Any], authorization: str = Header(None)):
     d = await _doctor(authorization)
-    amount = float(body.get("amount", 0))
-    entry = mp_uid = None
+    amount = round(float(body.get("amount", 0)), 2)
+    await _guard_withdraw("doctor", d["doctor_id"], amount)
     entry = await mp.wallet_move("doctor", d["doctor_id"], amount, "debit", "withdrawal request")
     w = {"withdrawal_id": mp.uid("wdr"), "owner_type": "doctor", "owner_id": d["doctor_id"],
          "amount": amount, "status": "pending", "at": mp.now()}
@@ -1123,7 +1139,8 @@ async def partner_wallet(authorization: str = Header(None)):
 @router.post("/partner/withdraw")
 async def partner_withdraw(body: Dict[str, Any], authorization: str = Header(None)):
     p = await _partner(authorization)
-    amount = float(body.get("amount", 0))
+    amount = round(float(body.get("amount", 0)), 2)
+    await _guard_withdraw("partner", p["partner_id"], amount)
     await mp.wallet_move("partner", p["partner_id"], amount, "debit", "withdrawal request")
     w = {"withdrawal_id": mp.uid("wdr"), "owner_type": "partner", "owner_id": p["partner_id"],
          "amount": amount, "status": "pending", "at": mp.now()}

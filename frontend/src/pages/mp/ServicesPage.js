@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Clock, Home, ArrowRight } from 'lucide-react';
+import { Clock, Home, ArrowRight, MapPinOff } from 'lucide-react';
 import { mp } from '../../utils/mpApi';
 import SEOHead from '../../components/SEOHead';
 import { HbCategoryGrid } from './HbCategoryPage';
@@ -39,16 +39,20 @@ const ServicesPage = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-8 sm:py-12">
         <div className="text-center mb-8">
           <p className="text-xs font-bold tracking-[0.2em] text-emerald-700 uppercase">Salon glow. Zero travel.</p>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-900 mt-2">Pamper Yourself at Home</h1>
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-900 mt-2">Salon at your doorstep</h1>
         </div>
         <HbCategoryGrid />
         <h2 className="mt-10 text-lg font-extrabold text-stone-900">{cat || 'Popular services'}</h2>
         <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-5" data-testid="service-list">
           {loading && <p className="col-span-full text-center text-stone-400 py-16">Loading services…</p>}
           {!loading && services.length === 0 && (
-            <div className="col-span-full text-center py-16" data-testid="no-services-nearby">
-              <p className="text-lg font-extrabold text-stone-800">We are not in your area yet</p>
-              <p className="text-sm text-stone-500 mt-1">Coming soon — try another category.</p>
+            <div className="col-span-full flex justify-center py-10" data-testid="no-services-nearby">
+              <div className="max-w-md w-full text-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 border border-emerald-100 rounded-3xl p-8 sm:p-10 shadow-sm">
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-white shadow-sm ring-1 ring-emerald-100 flex items-center justify-center text-emerald-600 mb-4"><MapPinOff size={30} strokeWidth={1.6} /></div>
+                <h3 className="text-xl font-extrabold text-stone-900">We're not available at your location yet</h3>
+                <p className="text-sm text-stone-500 mt-2 leading-relaxed">No service partners near you right now. We're expanding fast — switch your area from the top bar to explore nearby, or check back soon.</p>
+                <Link to="/pro" className="inline-flex items-center gap-1.5 mt-5 text-emerald-700 font-bold text-sm hover:underline">Are you a beauty pro? Earn with us <ArrowRight size={14} /></Link>
+              </div>
             </div>
           )}
           {services.map((s) => (

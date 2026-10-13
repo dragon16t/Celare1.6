@@ -948,10 +948,22 @@ async def admin_partner_service_decision(partner_id: str, service_id: str, body:
 
 # ------------------------------------------------------- admin: withdrawals
 @router.get("/admin/withdrawals")
-async def admin_withdrawals(status: str = "", x_admin_token: str = Header(None)):
+async def admin_withdrawals(status: str = "", owner_type: str = "", x_admin_token: str = Header(None)):
     await _check_admin(x_admin_token)
-    q = {"status": status} if status else {}
-    return await Db.mp_withdrawals.find(q, {"_id": 0}).sort("at", -1).to_list(300)
+    q: Dict[str, Any] = {}
+    if status:
+        q["status"] = status
+    if owner_type:
+        q["owner_type"] = owner_type
+    rows = await Db.mp_withdrawals.find(q, {"_id": 0}).sort("at", -1).to_list(300)
+    # enrich with provider name for the admin table
+    for w in rows:
+        coll = Db.mp_doctors if w.get("owner_type") == "doctor" else Db.mp_partners
+        key = "doctor_id" if w.get("owner_type") == "doctor" else "partner_id"
+        prov = await coll.find_one({key: w.get("owner_id")}, {"_id": 0})
+        w["owner_name"] = (prov or {}).get("name") or ((prov or {}).get("applicant") or {}).get("name") or w.get("owner_id")
+        w["owner_balance"] = await mp.wallet_balance(w["owner_type"], w["owner_id"])
+    return rows
 
 
 @router.post("/admin/withdrawals/{withdrawal_id}/process")
