@@ -72,7 +72,7 @@ const tabs = [
   ['categories', 'Categories & Images', LayoutGrid],
   ['reviews', 'Reviews', Star],
   ['earnings', 'Platform Earnings', IndianRupee],
-  ['withdrawals', 'Withdrawal Requests', Wallet],
+  ['withdrawals', 'Withdrawals', Wallet],
   ['support', 'Support Tickets', LifeBuoy],
   ['updates', 'Updates', Megaphone],
   ['settings', 'Settings', Settings],

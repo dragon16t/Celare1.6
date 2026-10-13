@@ -1088,6 +1088,11 @@ async def partner_verify(booking_id: str, body: Dict[str, str], authorization: s
     if not b or b.get("partner_id") != p["partner_id"]:
         raise HTTPException(403, "You can only verify your own bookings")
     done = await _verify_completion_otp(Db.mp_home_bookings, booking_id, body.get("otp", ""), p["partner_id"])
+    # Cash bookings are confirmed paid the moment the customer code is verified — no separate step.
+    if done.get("payment_method") == "pay_after_service":
+        await Db.mp_home_bookings.update_one({"booking_id": booking_id}, {"$set": {
+            "payment_status": "paid_cash", "cash_collected_by": p["partner_id"], "paid_at": mp.now()}})
+        done["payment_status"] = "paid_cash"
     await _settle(done, "home")
     return {"success": True, "status": "completed"}
 

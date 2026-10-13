@@ -69,6 +69,12 @@ const ConsultRow = ({ b, rx }) => {
             <Phone size={14} /> Call doctor
           </Link>
         )}
+        {b.doctor_id && (
+          <Link to={`/doctors/${b.doctor_id}`} data-testid={`rebook-${b.booking_id}`}
+            className="inline-flex items-center gap-1.5 border border-emerald-700 text-emerald-800 text-xs font-bold rounded-full px-4 py-2.5">
+            <Clock size={14} /> Book again
+          </Link>
+        )}
         {!paid && <span className="text-[11px] text-amber-700 font-bold flex items-center gap-1"><Clock size={12} /> Prepaid — confirms after payment</span>}
       </div>
       {b.status === 'completed' && (

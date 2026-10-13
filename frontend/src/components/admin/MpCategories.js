@@ -10,7 +10,7 @@ const MpCategories = ({ module }) => {
   const [newCat, setNewCat] = useState({ title: '', order: 0 });
   const load = () => mp.get('/admin/categories', { ...adminHdr(), params: { module } })
     .then((r) => setCats(r.data.filter((c) => c.module === module))).catch(() => {});
-  useEffect(load, [module]); // eslint-disable-line
+  useEffect(() => { load(); }, [module]); // eslint-disable-line
 
   const addCat = async () => {
     if (!newCat.title) return;

@@ -50,21 +50,32 @@ const PartnerPortalPage = () => {
   const [otpMap, setOtpMap] = useState({});
   const watchRef = useRef(null);
   const prevReqCount = useRef(0);
+  const alarmRef = useRef(null);
+  // Non-stop alert: loop a beep every 2s while there are pending requests; stops the moment
+  // the partner accepts/declines (requests list empties) or a request expires.
   useEffect(() => {
-    if (requests.length > prevReqCount.current) {
+    const hasPending = requests.length > 0;
+    const playBeep = () => {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = 880; g.gain.setValueAtTime(0.15, ctx.currentTime);
-        o.start(); o.stop(ctx.currentTime + 0.6);
-      } catch { /* blocked until gesture */ }
-      if ('Notification' in window && Notification.permission === 'granted') {
+        o.frequency.value = 880; g.gain.setValueAtTime(0.18, ctx.currentTime);
+        o.start(); o.stop(ctx.currentTime + 0.5);
+      } catch { /* blocked until first gesture */ }
+    };
+    if (hasPending && !alarmRef.current) {
+      playBeep();
+      alarmRef.current = setInterval(playBeep, 2000);
+      if (requests.length > prevReqCount.current && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Celesta Glow — new booking request', { body: 'First to accept gets the booking.' });
       }
+    } else if (!hasPending && alarmRef.current) {
+      clearInterval(alarmRef.current); alarmRef.current = null;
     }
     prevReqCount.current = requests.length;
   }, [requests]);
+  useEffect(() => () => { if (alarmRef.current) clearInterval(alarmRef.current); }, []);
   useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }, []);
 
 
@@ -234,8 +245,8 @@ const PartnerPortalPage = () => {
                   )}
                   {b.status === 'arrived' && b.arrival_photo && <button onClick={() => { stopWatch(); act(b.booking_id, 'start-service'); }} data-testid={`start-service-${b.booking_id}`} className="bg-indigo-600 text-white text-xs font-bold rounded-full px-4 py-2">Start service</button>}
                   {b.status === 'in_service' && <button onClick={() => act(b.booking_id, 'request-completion')} data-testid={`complete-${b.booking_id}`} className="bg-violet-600 text-white text-xs font-bold rounded-full px-4 py-2">Complete — email OTP to customer</button>}
-                  {b.payment_method === 'pay_after_service' && ['in_service', 'completion_pending'].includes(b.status) && b.payment_status !== 'paid_cash' && (
-                    <button onClick={() => act(b.booking_id, 'cash-collected')} data-testid={`cash-${b.booking_id}`} className="bg-emerald-700 text-white text-xs font-bold rounded-full px-4 py-2">Cash collected (₹{b.total_amount || b.price})</button>
+                  {b.payment_method === 'pay_after_service' && ['in_service', 'completion_pending'].includes(b.status) && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5" data-testid={`cash-note-${b.booking_id}`}>Collect ₹{b.total_amount || b.price} cash — confirmed when you verify the customer code</span>
                   )}
                   {b.status === 'completion_pending' && (
                     <span className="flex items-center gap-2">

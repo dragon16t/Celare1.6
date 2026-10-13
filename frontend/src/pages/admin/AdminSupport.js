@@ -9,7 +9,7 @@ const AdminSupport = ({ userType }) => {
 
   const load = () => mp.get('/admin/support', { ...adminHdr(), params: { ...(filter ? { status: filter } : {}), ...(userType ? { user_type: userType } : {}) } })
     .then((r) => setTickets(r.data)).catch(() => toast.error('Failed'));
-  useEffect(load, [filter, userType]); // eslint-disable-line
+  useEffect(() => { load(); }, [filter, userType]); // eslint-disable-line
 
   const sendReply = async (t) => {
     try { await mp.post(`/admin/support/${t.ticket_id}/reply`, { message: reply[t.ticket_id] || '' }, adminHdr()); setReply({ ...reply, [t.ticket_id]: '' }); toast.success('Replied'); load(); }

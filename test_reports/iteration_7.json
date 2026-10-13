@@ -1,0 +1,35 @@
+{
+  "summary": "Verified celesta glow marketplace changes: admin withdrawals + support tabs in both doctor and partner hubs, admin backend endpoints (withdrawals/support/config/consultation room), public homepage/services/doctors copy, service-detail gender picker, and doctor photos. Found and FIXED one critical runtime bug in AdminSupport.js (useEffect returning a Promise -> 'destroy is not a function' uncaught runtime error overlay on both dhub-support and phub-support tabs). After fix, 0 errors on support tabs. 10/10 backend pytest cases pass. All visual/text checks pass. Doctor photos load (3 doctors with https URLs).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dermatologist Manager tab bar", "issues": ["'Withdrawal Requests' tab label gets visually truncated on 1920 viewport (shows 'Withdra…'). Consider shortening to 'Withdrawals' or allowing horizontal scroll on the tab strip."]},
+      {"screen": "Doctors homepage listing (pre-existing)", "issues": ["Non-blocking React warning: duplicate child keys in some list render (not from this change)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_marketplace_admin.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "No functional action items blocking release. The AdminSupport useEffect runtime bug was fixed by the testing agent (single-line change) and verified. Main agent may optionally tighten the Dermatologist/Partner hub tab-strip to prevent 'Withdrawal Requests' label truncation on narrower screens."
+  ],
+  "critical_code_review_comments": [
+    "FIXED: /app/frontend/src/pages/admin/AdminSupport.js line 12 used `useEffect(load, [...])` where `load` is an arrow function returning a Promise (from axios .then chain). React interprets the returned Promise as a cleanup function, triggering 'destroy is not a function' TypeError on unmount. Changed to `useEffect(() => { load(); }, [...])`.",
+    "Audit recommendation: grep other admin pages for the same anti-pattern (useEffect receiving a function reference that returns a Promise). Common across projects — worth a repo-wide check.",
+    "AdminSupport.js uses `response.data` directly in setTickets without a shape guard; a non-array response would crash .map. Low risk since backend validates, but a `Array.isArray(r.data) ? r.data : []` is cheap."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/admin/AdminSupport.js",
+    "/app/backend/tests/test_marketplace_admin.py (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% (all requested checks pass after fix)"},
+  "test_credentials": "Admin password celestaglow2024 at /admin (POST /api/admin/login -> X-Admin-Token header)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression file: /app/backend/tests/test_marketplace_admin.py covers admin login, /api/mp/config payments_configured, /api/mp/doctors photo URLs, admin withdrawals (doctor+partner) with owner_name/owner_balance assertions, admin support list, auth-required 401, and consultation-room no-500. Admin webapp routes: /admin -> login, then /admin/dermatologists has tabs data-testid=dhub-withdrawals and dhub-support; /admin/partners has phub-withdrawals and phub-support. Panels: admin-withdrawals-doctor, admin-withdrawals-partner, admin-support (single component for both hubs, filtered via userType prop). Public page copy requirements verified: Home has 'Book a Nearby Dermatologist' and 'Glow Without Leaving Home'; /services shows 'Salon at your doorstep'; /services/<id> gender picker heading 'Select your gender *' (rendered uppercase via CSS text-transform). Provider portals need real Gmail OTP — skip. Geolocation granted to 12.9716,77.5946 (Bengaluru) during tests — services and doctors load there, so empty-state testids (no-services-nearby, no-doctors-nearby, no-gender-partner) were not triggered but their presence/absence should be verified from an area with no coverage if needed.",
+  "rca of the issue": "RCA for Support tab runtime error: AdminSupport.js declared `const load = () => mp.get(...).then(...).catch(...)` — an arrow function with an implicit expression body returning the Promise. Then `useEffect(load, [filter, userType])` passed `load` as the effect callback. React treats whatever the effect callback returns as a cleanup function. Because load returned a Promise, on next effect run / unmount React tried to call `promise()` → TypeError: destroy is not a function. The error-boundary runtime overlay replaced the AdminSupport DOM, so [data-testid=admin-support] was absent. Fix: wrap in a void arrow: `useEffect(() => { load(); }, [filter, userType])`. Reproduction: /admin login -> /admin/dermatologists -> click 'Support Tickets' tab (data-testid dhub-support). Before fix: red 'Uncaught runtime errors: destroy is not a function' overlay. After fix: Support Inbox renders with filter chips and 'No tickets in this view.' empty state."
+}

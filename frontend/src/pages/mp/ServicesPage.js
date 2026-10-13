@@ -65,7 +65,12 @@ const ServicesPage = () => {
                 <DiscountBadge pct={s.discount_pct} className="absolute top-1.5 left-1.5" />
               </div>
               <div className="p-2 sm:p-5 flex-1 flex flex-col">
-                <h3 className="font-extrabold text-stone-900 text-[11px] sm:text-base leading-snug line-clamp-2">{s.name}</h3>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-extrabold text-stone-900 text-[11px] sm:text-base leading-snug line-clamp-2">{s.name}</h3>
+                </div>
+                {(s.gender === 'women' || s.gender === 'men') && (
+                  <span className={`mt-1 inline-flex w-fit items-center text-[8px] sm:text-[10px] font-extrabold rounded-full px-2 py-0.5 ${s.gender === 'women' ? 'bg-pink-50 text-pink-700' : 'bg-sky-50 text-sky-700'}`} data-testid={`gender-badge-${s.service_id}`}>{s.gender === 'women' ? 'For Women' : 'For Men'}</span>
+                )}
                 <p className="hidden sm:block text-xs text-stone-500 mt-1.5 line-clamp-2">{s.short_desc}</p>
                 <div className="mt-auto pt-2 flex items-end justify-between gap-1">
                   <div className="min-w-0">
