@@ -64,8 +64,8 @@ export default function MpContentManager({ module }) {
   return (
     <div className="space-y-6" data-testid={`content-manager-${module}`}>
       <section>
-        <h2 className="font-extrabold text-stone-900">{isDoc ? 'Dermatologist profiles' : 'All partner services'}</h2>
-        <p className="text-[11px] text-stone-400 mb-3">Edit the text and image customers see. Changes go live instantly.</p>
+        <h2 className="font-extrabold text-stone-900">{isDoc ? 'Complete dermatologist profiles' : 'All partner services'}</h2>
+        <p className="text-[11px] text-stone-400 mb-3">{isDoc ? 'Every dermatologist profile — edit the headline, specialties, bio and photo customers see.' : 'Edit the text and image customers see.'} Changes go live instantly.</p>
         <div className="grid lg:grid-cols-2 gap-3">
           {items.map((it) => isDoc ? (
             <ContentRow key={it.doctor_id} item={it} fields={DOC_FIELDS} testid={`content-doc-${it.doctor_id}`}
@@ -82,7 +82,8 @@ export default function MpContentManager({ module }) {
         </div>
       </section>
       <section>
-        <h2 className="font-extrabold text-stone-900">{isDoc ? 'Consultation categories' : 'Service categories'}</h2>
+        <h2 className="font-extrabold text-stone-900">{isDoc ? 'Homepage concern tiles (discovery categories)' : 'Service categories'}</h2>
+        {isDoc && <p className="text-[11px] text-stone-400 mb-1">These are the circular skin-concern tiles shown on the homepage &amp; discovery — not doctor profiles.</p>}
         <div className="grid lg:grid-cols-2 gap-3 mt-3">
           {cats.map((c) => (
             <ContentRow key={c.cat_id} item={c} fields={CAT_FIELDS} testid={`content-cat-${c.cat_id}`} image={c.image}

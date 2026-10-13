@@ -35,9 +35,11 @@ const ServiceRow = ({ s, reload }) => {
   );
 };
 
-const SubBlock = ({ sb, reload }) => {
+const SubBlock = ({ sb, reload, gf }) => {
   const [v, setV] = useState({ title: sb.title, order: sb.order || 0, active: sb.active !== false });
   const [n, setN] = useState({ name: '', price: '', duration_min: 30, gender: 'unisex' });
+  const services = gf ? sb.services.filter((s) => (s.gender || 'unisex') === gf) : sb.services;
+  if (gf && services.length === 0) return null;
   const add = () => n.name && n.price && mp.post('/admin/hb/services', { ...n, subcategory_id: sb.sub_id, price: Number(n.price), duration_min: Number(n.duration_min) }, adminHdr()).then(() => { setN({ name: '', price: '', duration_min: 30, gender: 'unisex' }); reload(); toast.success('Service added'); }).catch(err);
   return (
     <div className="ml-4 sm:ml-8 mt-2 rounded-xl border border-stone-100 bg-stone-50/50 p-3" data-testid={`hb-adm-sub-${sb.sub_id}`}>
@@ -49,7 +51,7 @@ const SubBlock = ({ sb, reload }) => {
         <button onClick={() => mp.put(`/admin/subcategories/${sb.sub_id}`, v, adminHdr()).then(() => { toast.success('Saved'); reload(); }).catch(err)} className="text-emerald-700"><Save size={14} /></button>
         <button onClick={() => window.confirm(`Delete "${sb.title}" and archive its services?`) && mp.delete(`/admin/subcategories/${sb.sub_id}`, adminHdr()).then(reload)} className="text-rose-500"><Trash2 size={14} /></button>
       </div>
-      <div className="mt-2">{sb.services.map((s) => <ServiceRow key={s.service_id} s={s} reload={reload} />)}</div>
+      <div className="mt-2">{services.map((s) => <ServiceRow key={s.service_id} s={s} reload={reload} />)}</div>
       <div className="flex flex-wrap gap-1.5 mt-2">
         <input placeholder="New service name" value={n.name} onChange={(e) => setN({ ...n, name: e.target.value })} className={`${inp} flex-1`} data-testid={`hb-adm-new-svc-${sb.sub_id}`} />
         <input placeholder="₹" type="number" value={n.price} onChange={(e) => setN({ ...n, price: e.target.value })} className={`${inp} w-20`} />
@@ -60,15 +62,17 @@ const SubBlock = ({ sb, reload }) => {
   );
 };
 
-const CatBlock = ({ c, reload }) => {
+const CatBlock = ({ c, reload, gf }) => {
   const [openC, setOpenC] = useState(false);
   const [v, setV] = useState({ title: c.title, description: c.description || '', order: c.order || 0, active: c.active !== false, show_on_home: c.show_on_home !== false, show_in_onboarding: c.show_in_onboarding !== false });
   const [sub, setSub] = useState('');
+  const open = openC || !!gf;
+  if (gf && c.subcategories.reduce((a, sb) => a + sb.services.filter((s) => (s.gender || 'unisex') === gf).length, 0) === 0) return null;
   const save = () => mp.put(`/admin/categories/${c.cat_id}`, { ...c, ...v, module: 'service', image: c.image || '' }, adminHdr()).then(() => { toast.success('Category saved'); reload(); }).catch(err);
   return (
     <div className="bg-white rounded-2xl border border-stone-200 p-4" data-testid={`hb-adm-cat-${c.cat_id}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <button onClick={() => setOpenC(!openC)} className="text-stone-400">{openC ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
+        <button onClick={() => setOpenC(!openC)} className="text-stone-400">{open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
         <Img src={c.image} url={`/admin/categories/${c.cat_id}/image`} done={reload} testid={`hb-adm-cat-img-${c.cat_id}`} />
         <input value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} className={`${inp} flex-1 font-extrabold text-sm`} />
         <input type="number" value={v.order} onChange={(e) => setV({ ...v, order: Number(e.target.value) })} className={`${inp} w-14`} title="Display order" />
@@ -80,9 +84,9 @@ const CatBlock = ({ c, reload }) => {
       </div>
       <input placeholder="Description" value={v.description} onChange={(e) => setV({ ...v, description: e.target.value })} className={`${inp} w-full mt-2`} />
       <p className="text-[10px] text-stone-400 mt-1">{c.subcategories.length} subcategories • {c.subcategories.reduce((a, s) => a + s.services.length, 0)} services</p>
-      {openC && (
+      {open && (
         <>
-          {c.subcategories.map((sb) => <SubBlock key={sb.sub_id} sb={sb} reload={reload} />)}
+          {c.subcategories.map((sb) => <SubBlock key={sb.sub_id} sb={sb} reload={reload} gf={gf} />)}
           <div className="ml-4 sm:ml-8 mt-2 flex gap-2">
             <input placeholder="New subcategory" value={sub} onChange={(e) => setSub(e.target.value)} className={`${inp} flex-1`} data-testid={`hb-adm-new-sub-${c.cat_id}`} />
             <button onClick={() => sub && mp.post('/admin/subcategories', { cat_id: c.cat_id, title: sub, order: c.subcategories.length, image: c.image }, adminHdr()).then(() => { setSub(''); reload(); }).catch(err)}
@@ -117,21 +121,29 @@ const PartnerSelections = () => {
 export default function HbCatalogManager() {
   const [tree, setTree] = useState(null);
   const [title, setTitle] = useState('');
+  const [gf, setGf] = useState('');
   const load = () => mp.get('/admin/catalog/tree', adminHdr()).then((r) => setTree(r.data.filter((c) => !c.legacy))).catch(() => setTree([]));
   useEffect(() => { load(); }, []);
   if (!tree) return <p className="text-sm text-stone-400">Loading…</p>;
   return (
     <div className="space-y-3" data-testid="hb-catalog-manager">
       <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4">
-        <p className="font-extrabold text-stone-900">Health & Beauty Service Management</p>
-        <p className="text-[11px] text-stone-500">One central tree: main categories → subcategories → services. Used by the homepage, category pages and partner onboarding. Click ▸ to manage subcategories & services; click any image to replace it.</p>
+        <p className="font-extrabold text-stone-900">Health &amp; Beauty Service Management</p>
+        <p className="text-[11px] text-stone-500">One central tree: main categories → subcategories → services. Used by the homepage, category pages and partner onboarding. Click ▸ to manage subcategories &amp; services; click any image to replace it.</p>
         <div className="flex gap-2 mt-3">
-          <input placeholder="New main category" value={title} onChange={(e) => setTitle(e.target.value)} className={`${inp} flex-1`} data-testid="hb-adm-new-cat" />
-          <button onClick={() => title && mp.post('/admin/categories', { module: 'service', title, order: tree.length }, adminHdr()).then(() => { setTitle(''); load(); }).catch(err)}
-            className="bg-emerald-700 text-white text-xs font-bold rounded-full px-4 inline-flex items-center gap-1" data-testid="hb-adm-add-cat"><Plus size={13} /> Category</button>
+          <input placeholder="New main category (e.g. Men, Women, Healthy Beauty)" value={title} onChange={(e) => setTitle(e.target.value)} className={`${inp} flex-1`} data-testid="hb-adm-new-cat" />
+          <button onClick={() => title && mp.post('/admin/categories', { module: 'service', title, order: tree.length }, adminHdr()).then(() => { setTitle(''); load(); toast.success('Catalog added'); }).catch(err)}
+            className="bg-emerald-700 text-white text-xs font-bold rounded-full px-4 inline-flex items-center gap-1" data-testid="hb-adm-add-cat"><Plus size={13} /> Add catalog</button>
+        </div>
+        <div className="flex items-center gap-2 mt-3" data-testid="hb-gender-filter">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Manage for:</span>
+          {[['', 'All'], ['women', 'Women'], ['men', 'Men'], ['unisex', 'Unisex']].map(([k, l]) => (
+            <button key={k || 'all'} onClick={() => setGf(k)} data-testid={`hb-gf-${k || 'all'}`}
+              className={`text-[11px] font-bold rounded-full px-3 py-1.5 ${gf === k ? (k === 'women' ? 'bg-pink-600 text-white' : k === 'men' ? 'bg-sky-700 text-white' : 'bg-emerald-700 text-white') : 'bg-white border border-stone-200 text-stone-600'}`}>{l}</button>
+          ))}
         </div>
       </div>
-      {tree.map((c) => <CatBlock key={`${c.cat_id}-${c.subcategories.length}-${c.image}`} c={c} reload={load} />)}
+      {tree.map((c) => <CatBlock key={`${c.cat_id}-${c.subcategories.length}-${c.image}`} c={c} reload={load} gf={gf} />)}
       <PartnerSelections />
     </div>
   );

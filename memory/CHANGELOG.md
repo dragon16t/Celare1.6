@@ -40,7 +40,20 @@ Verified homepage/doctors/services/admin match reference celare-preview-2.
   green "Paid" badge (TransactionsPanel).
 
 ### Remaining backlog (requested, not yet built) — Phase 3 (larger admin UI)
-- P1 Admin catalog: explicit "add new catalog" (Men / Women / Healthy Beauty) + edit/update
-  buttons; separate Men vs Female image/content management sections for service partners.
-- P1 Admin dermatology: dedicated "complete dermatology profiles" section (distinct from concerns).
-- P2 km-limit visibility verify; provider-portal end-to-end live-OTP testing.
+- (none outstanding from the original spec — see Phase 3 below)
+
+### Marketplace Phase 3 (same session — admin UI; NOT run through testing agent per user instruction)
+- HbCatalogManager: "Add catalog" button (placeholder hints Men / Women / Healthy Beauty) +
+  a Manage-for gender filter (All / Women / Men / Unisex) so admins manage each gender's
+  services/images separately in the one unified catalog page. Category/subcategory/service
+  add-edit-update-delete + image replace already existed.
+- MpContentManager (Dermatologist Manager → Services & Content): first section relabeled
+  "Complete dermatologist profiles" (edit headline/specialties/bio/photo); the concern tiles
+  section relabeled "Homepage concern tiles (discovery categories)" with a note clarifying
+  they are NOT doctor profiles — fixes the user's "concerns wrongly under dermatology profile".
+- Partner order "Navigate" link now always present → Google Maps directions (customer lat/lng
+  when synced, else a maps search on the address).
+
+### Notes / not code-changed
+- "Super fast": clone already ships lazy routes + Cloudinary image optimizer + CDN sizing.
+- km-limit: /doctors and /services already filter providers by saved location (lat/lng) server-side.

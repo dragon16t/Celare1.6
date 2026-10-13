@@ -231,10 +231,9 @@ const PartnerPortalPage = () => {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {b.customer?.lat && (
-                    <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${b.customer.lat},${b.customer.lng}`}
-                      className="border border-stone-300 text-xs font-bold rounded-full px-4 py-2 inline-flex items-center gap-1"><Navigation size={12} /> Navigate</a>
-                  )}
+                  <a target="_blank" rel="noreferrer" data-testid={`navigate-${b.booking_id}`}
+                    href={b.customer?.lat ? `https://www.google.com/maps/dir/?api=1&destination=${b.customer.lat},${b.customer.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.customer?.address, b.customer?.city, b.customer?.pincode].filter(Boolean).join(', '))}`}
+                    className="border border-stone-300 text-xs font-bold rounded-full px-4 py-2 inline-flex items-center gap-1"><Navigation size={12} /> Navigate</a>
                   {b.status === 'assigned' && <button onClick={() => startJourney(b.booking_id)} data-testid={`journey-${b.booking_id}`} className="bg-sky-600 text-white text-xs font-bold rounded-full px-4 py-2">Start journey (live tracking)</button>}
                   {['en_route', 'arrived'].includes(b.status) && (
                     <label className="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-full px-4 py-2 inline-flex items-center gap-1.5 cursor-pointer" data-testid={`arrived-${b.booking_id}`}>
