@@ -16,6 +16,7 @@ import NicheOffersGrid from '../components/NicheOffersGrid';
 import HeroCarousel from '../components/HeroCarousel'; // eslint-disable-line no-unused-vars
 import { ProductCard } from './ConcernCategoryPage';
 import CircularCategoryStrip from '../components/CircularCategoryStrip';
+import ServiceModuleCards from '../components/ServiceModuleCards';
 import { playCartSound } from '../utils/cartSound';
 import ReviewsCarousel from '../components/ReviewsCarousel';
 import { cachedGet, peek } from '../utils/apiCache';
@@ -427,6 +428,9 @@ function Homepage() {
         </section>
       )}
 
+      {/* Two-square feature cards — Dermatologist Consultation & Home Services (admin-toggled) */}
+      <ServiceModuleCards />
+
       {/* Mega Bash — compact running-marquee offer strip. Positioned below
           the Search / Shop-by-Concern / Shop-by-Category strips per the
           Feb-2026 layout update. */}
@@ -757,40 +761,37 @@ function TrackerPromo() {
 
   return (
     <section className="max-w-7xl mx-auto px-3 sm:px-6 pt-6 sm:pt-10" data-testid="home-tracker-promo">
-      <div className="rounded-[28px] border border-emerald-100 bg-gradient-to-b from-emerald-50/70 via-white to-white p-5 sm:p-8 lg:p-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
+      <div className="rounded-[28px] border border-emerald-100 bg-gradient-to-b from-emerald-50/70 via-white to-white p-5 sm:p-6 max-w-md mx-auto">
+        <div className="grid grid-cols-1 gap-4 items-stretch [&>*:nth-child(n+2)]:hidden">
 
           {/* ---------- Column 1: copy + features + CTA ---------- */}
           <div className="lg:col-span-4 flex flex-col">
-            <div className="inline-flex items-center gap-1.5 self-start bg-white border border-emerald-200 rounded-full px-3 py-1 mb-5 shadow-sm">
+            <div className="inline-flex items-center gap-1.5 self-start bg-white border border-emerald-200 rounded-full px-3 py-1 mb-4 shadow-sm">
               <Sparkles size={14} className="text-emerald-600" />
               <span className="text-[11px] font-black uppercase tracking-[0.12em] text-emerald-700">New · AI Skin Tracker</span>
             </div>
-            <h2 className="font-heading text-4xl sm:text-5xl font-black leading-[1.02] text-stone-900">
-              Track your<br />
-              <span className="text-emerald-600 relative">glow-up
-                <span className="absolute left-0 -bottom-1 h-2 w-full bg-emerald-200/70 -z-0 rounded" style={{ zIndex: -1 }} />
-              </span>
+            <h2 className="font-heading text-3xl font-black leading-tight text-stone-900">
+              Track your <span className="text-emerald-600">glow-up</span>
             </h2>
-            <p className="text-[15px] text-stone-600 mt-4 max-w-sm leading-relaxed">
+            <p className="text-[13px] text-stone-600 mt-3 leading-relaxed">
               AI analyses your skin, gives personalised routines and shows real results.
             </p>
-            <p className="text-[13px] text-stone-500 mt-2 max-w-sm leading-relaxed">
-              <b className="text-emerald-700">FREE for 1 month</b> on orders ≥ ₹499 — then just ₹499/month (auto-pay). Do's &amp; don'ts and AI improvement suggestions every 3 days.
+            <p className="text-[12px] text-stone-500 mt-2 leading-relaxed">
+              <b className="text-emerald-700">FREE for 1 month</b> on orders ≥ ₹499 — then just ₹499/month.
             </p>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-5 mt-7">
+            <div className="grid grid-cols-4 gap-2 mt-5">
               {features.map((f) => (
-                <div key={f.label} className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-2">
-                    <f.icon size={22} className="text-emerald-600" />
+                <div key={f.label} className="flex flex-col items-center text-center">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-1.5">
+                    <f.icon size={18} className="text-emerald-600" />
                   </div>
-                  <span className="text-[13px] font-bold text-stone-700 leading-tight">{f.label}</span>
+                  <span className="text-[10px] font-bold text-stone-700 leading-tight">{f.label}</span>
                 </div>
               ))}
             </div>
 
-            <div className="mt-auto pt-8">
+            <div className="mt-6">
               <Link to="/tracker" data-testid="home-tracker-cta"
                 className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[15px] px-7 py-4 rounded-full transition-colors shadow-lg shadow-emerald-700/20">
                 <Sparkles size={18} /> {loggedIn ? 'Open my tracker' : 'Start free tracker'} <ArrowRight size={18} />

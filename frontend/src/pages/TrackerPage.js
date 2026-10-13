@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import MyBookingsPage from './mp/MyBookingsPage';
+import TransactionsPanel from '../components/mp/TransactionsPanel';
 import {
   Sparkles, Camera, Loader2, Mail, KeyRound, ArrowLeft, TrendingUp, Package,
   LogOut, Upload, Check, Leaf, Ban, Sun, Moon, ChevronRight, Star, CalendarDays,
@@ -742,12 +744,15 @@ function OrdersPanel({ token }) {
 const TABS = [
   { id: 'scan', label: 'Scan & Routine', icon: Sparkles },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
-  { id: 'orders', label: 'Orders', icon: Package },
+  { id: 'orders', label: 'Product Orders', icon: Package },
+  { id: 'bookings', label: 'Service & Dermatology Bookings', icon: ClipboardList },
+  { id: 'transactions', label: 'Transactions', icon: Gift },
   { id: 'profile', label: 'Profile', icon: User },
 ];
 
 function Dashboard({ token, user, onLogout }) {
-  const [tab, setTab] = useState('scan');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get('tab') || 'scan');
   const [latest, setLatest] = useState(null);
   const [plan, setPlan] = useState(null);
 
@@ -804,6 +809,8 @@ function Dashboard({ token, user, onLogout }) {
       {tab === 'scan' && <ScanPanel token={token} latest={latest} onScanned={setLatest} onPlanStarted={handlePlanStarted} />}
       {tab === 'progress' && <ProgressPanel token={token} plan={plan} />}
       {tab === 'orders' && <OrdersPanel token={token} />}
+      {tab === 'bookings' && <MyBookingsPage embedded />}
+      {tab === 'transactions' && <TransactionsPanel token={token} />}
       {tab === 'profile' && (
         <div className="bg-white rounded-2xl border border-stone-100 p-5 space-y-3 max-w-md">
           <div className="flex items-center gap-2"><User size={16} className="text-emerald-600" /><span className="text-sm font-black text-stone-900">Profile</span></div>

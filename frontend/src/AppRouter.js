@@ -4,7 +4,7 @@ import { loadNicheBrands } from './utils/brand';
 import ScrollToTop from './components/ScrollToTop';
 import { TrackingProvider } from './providers/TrackingProvider';
 import PublicLayout from './layouts/PublicLayout';
-import AdminMobileNav from './components/admin/AdminMobileNav';
+import AdminMobileNav, { AdminDesktopSidebar } from './components/admin/AdminMobileNav';
 import SplashScreen from './components/SplashScreen';
 
 // Eagerly loaded pages (critical for first paint)
@@ -65,6 +65,26 @@ const AdminTrendProducts = lazy(() => import('./pages/admin/AdminTrendProducts')
 const AdminImageGallery = lazy(() => import('./pages/admin/AdminImageGallery'));
 const AdminConsultations = lazy(() => import('./pages/admin/AdminConsultations'));
 const AdminDoctorBookings = lazy(() => import('./pages/admin/AdminDoctorBookings'));
+const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
+const AdminServices = lazy(() => import('./pages/admin/AdminServices'));
+const AdminMpCRM = lazy(() => import('./pages/admin/AdminMpCRM'));
+const AdminMpBookings = lazy(() => import('./pages/admin/AdminMpBookings'));
+const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
+const AdminDoctorHub = lazy(() => import('./pages/admin/AdminDoctorHub'));
+const AdminPartnerHub = lazy(() => import('./pages/admin/AdminPartnerHub'));
+const MpDoctorsPage = lazy(() => import('./pages/mp/DoctorsPage'));
+const MpDoctorProfilePage = lazy(() => import('./pages/mp/DoctorProfilePage'));
+const MpServicesPage = lazy(() => import('./pages/mp/ServicesPage'));
+const MpServiceDetailPage = lazy(() => import('./pages/mp/ServiceDetailPage'));
+const HbCategoryPage = lazy(() => import('./pages/mp/HbCategoryPage'));
+const MpTrackingPage = lazy(() => import('./pages/mp/TrackingPage'));
+const MpConsultRoomPage = lazy(() => import('./pages/mp/ConsultRoomPage'));
+const MpDoctorApplyPage = lazy(() => import('./pages/mp/DoctorApplyPage'));
+const MpPartnerApplyPage = lazy(() => import('./pages/mp/PartnerApplyPage'));
+const MpDoctorPortalPage = lazy(() => import('./pages/mp/DoctorPortalPage'));
+const MpPartnerPortalPage = lazy(() => import('./pages/mp/PartnerPortalPage'));
+const MpSupportPage = lazy(() => import('./pages/mp/SupportPage'));
+const MpProviderApp = lazy(() => import('./pages/mp/ProviderApp'));
 const AdminExtras = lazy(() => import('./pages/admin/AdminExtras'));
 const AdminUserJourney = lazy(() => import('./pages/admin/AdminUserJourney'));
 const AdminLiveVisitors = lazy(() => import('./pages/admin/AdminLiveVisitors'));
@@ -130,7 +150,8 @@ const AdminLayout = ({ children }) => {
   return (
     <Suspense fallback={<PageLoader />}>
       <AdminMobileNav />
-      {children}
+      <AdminDesktopSidebar />
+      <div data-admin-content="">{children}</div>
     </Suspense>
   );
 };
@@ -202,6 +223,14 @@ function App() {
         <Route path="/admin/image-gallery" element={<AdminLayout><AdminImageGallery /></AdminLayout>} />
         <Route path="/admin/consultations" element={<AdminLayout><AdminConsultations /></AdminLayout>} />
         <Route path="/admin/doctor-bookings" element={<AdminLayout><AdminDoctorBookings /></AdminLayout>} />
+        <Route path="/admin/marketplace" element={<AdminLayout><AdminMarketplace /></AdminLayout>} />
+        <Route path="/admin/services-catalogue" element={<AdminLayout><AdminServices /></AdminLayout>} />
+        <Route path="/admin/doctors-crm" element={<AdminLayout><AdminMpCRM kind="doctors" /></AdminLayout>} />
+        <Route path="/admin/partners-crm" element={<AdminLayout><AdminMpCRM kind="partners" /></AdminLayout>} />
+        <Route path="/admin/marketplace-bookings" element={<AdminLayout><AdminMpBookings /></AdminLayout>} />
+        <Route path="/admin/support" element={<AdminLayout><AdminSupport /></AdminLayout>} />
+        <Route path="/admin/dermatologists" element={<AdminLayout><AdminDoctorHub /></AdminLayout>} />
+        <Route path="/admin/partners" element={<AdminLayout><AdminPartnerHub /></AdminLayout>} />
         <Route path="/admin/extras" element={<AdminLayout><AdminExtras /></AdminLayout>} />
         <Route path="/admin/user-journey" element={<AdminLayout><AdminUserJourney /></AdminLayout>} />
         <Route path="/admin/live-visitors" element={<AdminLayout><AdminLiveVisitors /></AdminLayout>} />
@@ -292,6 +321,21 @@ function App() {
                   <Suspense fallback={<PageLoader />}><DoctorConsultationPage /></Suspense>
                 </PublicLayout>
               } />
+              {/* Marketplace: dermatologist consultations & home services */}
+              <Route path="/doctors" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpDoctorsPage /></Suspense></PublicLayout>} />
+              <Route path="/doctors/:doctorId" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpDoctorProfilePage /></Suspense></PublicLayout>} />
+              <Route path="/services" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpServicesPage /></Suspense></PublicLayout>} />
+              <Route path="/services/:serviceId" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpServiceDetailPage /></Suspense></PublicLayout>} />
+              <Route path="/my/bookings" element={<Navigate to="/account?tab=bookings" replace />} />
+              <Route path="/services/category/:catId" element={<PublicLayout><Suspense fallback={<PageLoader />}><HbCategoryPage /></Suspense></PublicLayout>} />
+              <Route path="/track/:bookingId" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpTrackingPage /></Suspense></PublicLayout>} />
+              <Route path="/doctor/apply" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpDoctorApplyPage /></Suspense></PublicLayout>} />
+              <Route path="/partner/apply" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpPartnerApplyPage /></Suspense></PublicLayout>} />
+              <Route path="/doctor" element={<Suspense fallback={<PageLoader />}><MpDoctorPortalPage /></Suspense>} />
+              <Route path="/partner" element={<Suspense fallback={<PageLoader />}><MpPartnerPortalPage /></Suspense>} />
+              <Route path="/pro" element={<Suspense fallback={<PageLoader />}><MpProviderApp /></Suspense>} />
+              <Route path="/support" element={<PublicLayout><Suspense fallback={<PageLoader />}><MpSupportPage /></Suspense></PublicLayout>} />
+              <Route path="/consult-room/:bookingId" element={<Suspense fallback={<PageLoader />}><MpConsultRoomPage /></Suspense>} />
               <Route path="/sale/:slug" element={<PublicLayout><Suspense fallback={<PageLoader />}><SalePage /></Suspense></PublicLayout>} />
               
               {/* Legal Pages */}

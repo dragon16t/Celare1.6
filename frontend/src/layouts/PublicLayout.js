@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import MobileBottomNav from '../components/MobileBottomNav';
 import Footer from '../components/Footer';
+import CustomerReminders from '../components/mp/CustomerReminders';
 import WhatsAppButton from '../components/WhatsAppButton';
 import { useTracking } from '../providers/TrackingProvider';
 
@@ -41,6 +42,8 @@ function PublicLayout({ children }) {
 
       {/* Mobile bottom nav (Home / Categories / Routine / Account / Cart) */}
       <MobileBottomNav />
+
+      <CustomerReminders />
 
       {/* Footer - site-wide */}
       <Footer />

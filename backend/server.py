@@ -24,6 +24,9 @@ from routes import admin as admin_routes
 from routes import i18n as i18n_routes
 from routes import consultation as consultation_routes
 from routes import doctor_consultation as doctor_consultation_routes
+from routes import mp_core as mp_core_routes
+from routes import mp_ops as mp_ops_routes
+from routes import mp_catalog as mp_catalog_routes
 from routes import skincare_extras as skincare_extras_routes
 from routes import sale_mode as sale_mode_routes
 from routes import payment_policy as payment_policy_routes
@@ -3511,6 +3514,22 @@ app.include_router(i18n_routes.router, prefix="/api")
 app.include_router(consultation_routes.router, prefix="/api")
 doctor_consultation_routes.setup(db, verify_admin_token, razorpay_client)
 app.include_router(doctor_consultation_routes.router, prefix="/api")
+mp_core_routes.setup(db, verify_admin_token, razorpay_client)
+mp_ops_routes.setup(db, verify_admin_token, razorpay_client)
+app.include_router(mp_core_routes.router, prefix="/api")
+app.include_router(mp_ops_routes.router, prefix="/api")
+app.include_router(mp_catalog_routes.router, prefix="/api")
+from services import mp_common as _mp_common
+
+
+@app.on_event("startup")
+async def mp_marketplace_bootstrap():
+    try:
+        await _mp_common.ensure_indexes()
+        await mp_core_routes.seed_defaults(db)
+        await mp_catalog_routes.seed_hb(db)
+    except Exception as exc:
+        logging.getLogger(__name__).warning(f"[mp] bootstrap failed: {exc}")
 skincare_extras_routes.setup(db, verify_admin_token)
 app.include_router(skincare_extras_routes.router, prefix="/api")
 sale_mode_routes.setup(db, verify_admin_token)
