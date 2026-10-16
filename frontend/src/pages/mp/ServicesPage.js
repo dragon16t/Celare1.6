@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Clock, Home, ArrowRight, MapPinOff } from 'lucide-react';
 import { mp } from '../../utils/mpApi';
+import LocationGate, { useSharedLocation } from '../../components/mp/LocationGate';
 import SEOHead from '../../components/SEOHead';
 import { HbCategoryGrid } from './HbCategoryPage';
 import { PriceTag, DiscountBadge } from '../../components/mp/PriceTag';
@@ -13,17 +14,19 @@ const ServicesPage = () => {
   const [cats, setCats] = useState([]);
   const [enabled, setEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
+  const loc = useSharedLocation();
 
   useEffect(() => {
     mp.get('/config').then((r) => setEnabled(r.data.home_services_enabled)).catch(() => {});
     mp.get('/categories', { params: { module: 'service' } }).then((r) => setCats(r.data)).catch(() => {});
   }, []);
   useEffect(() => {
+    if (!loc) return;
     setLoading(true);
     const catObj = cats.find((c) => c.title === cat);
-    mp.get('/services', { params: catObj ? { category_id: catObj.cat_id } : {} })
+    mp.get('/services', { params: { ...(catObj ? { category_id: catObj.cat_id } : {}), lat: loc.lat, lng: loc.lng } })
       .then((r) => setServices(r.data)).catch(() => setServices([])).finally(() => setLoading(false));
-  }, [cat, cats]);
+  }, [cat, cats, loc?.lat, loc?.lng]); // eslint-disable-line
 
   if (!enabled) return (
     <div className="max-w-xl mx-auto px-6 py-24 text-center" data-testid="services-disabled">
@@ -41,6 +44,10 @@ const ServicesPage = () => {
           <p className="text-xs font-bold tracking-[0.2em] text-emerald-700 uppercase">Salon glow. Zero travel.</p>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-900 mt-2">Salon at your doorstep</h1>
         </div>
+        {!loc ? (
+          <LocationGate title="See services available at your doorstep" subtitle="Share your location so we can show partners who serve your area." />
+        ) : (
+        <>
         <HbCategoryGrid />
         <h2 className="mt-10 text-lg font-extrabold text-stone-900">{cat || 'Popular services'}</h2>
         <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-5" data-testid="service-list">
@@ -83,6 +90,8 @@ const ServicesPage = () => {
             </Link>
           ))}
         </div>
+        </>
+        )}
         <p className="text-center mt-10 text-sm text-stone-500">
           Beauty pro? <Link to="/pro" className="text-emerald-700 font-bold underline">Earn with Celesta Glow</Link>
         </p>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Users, CalendarDays, LayoutGrid, Star, LifeBuoy, Settings } from 'lucide-react';
+import { Users, CalendarDays, LayoutGrid, Star, LifeBuoy, Settings, Stethoscope } from 'lucide-react';
 import AdminMpCRM from './AdminMpCRM';
+import AllDermatologists from '../../components/admin/AllDermatologists';
 import AdminMpBookings from './AdminMpBookings';
 import AdminSupport from './AdminSupport';
 import MpCategories from '../../components/admin/MpCategories';
@@ -15,6 +16,7 @@ import { Megaphone, Wallet } from 'lucide-react';
 
 const tabs = [
   ['doctors', 'Doctors & Applications', Users],
+  ['all-doctors', 'All Dermatologists', Stethoscope],
   ['content', 'Services & Content', FileEdit],
   ['bookings', 'Consultation Bookings', CalendarDays],
   ['categories', 'Categories & Images', LayoutGrid],
@@ -41,6 +43,7 @@ const AdminDoctorHub = () => {
         ))}
       </div>
       {tab === 'doctors' && <AdminMpCRM kind="doctors" />}
+      {tab === 'all-doctors' && <AllDermatologists />}
       {tab === 'content' && <MpContentManager module="doctor" />}
       {tab === 'bookings' && <AdminMpBookings fixedModule="consultation" />}
       {tab === 'categories' && <MpCategories module="doctor" />}

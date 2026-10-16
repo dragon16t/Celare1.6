@@ -191,7 +191,8 @@ async def list_categories(module: str = "service"):
 
 
 @router.get("/services")
-async def list_services(category_id: str = "", q: str = "", subcategory_id: str = "", gender: str = ""):
+async def list_services(category_id: str = "", q: str = "", subcategory_id: str = "", gender: str = "",
+                        lat: float = 0, lng: float = 0, radius_km: float = 0):
     query: Dict[str, Any] = {"status": "active"}
     if category_id:
         query["category_id"] = category_id
@@ -203,15 +204,29 @@ async def list_services(category_id: str = "", q: str = "", subcategory_id: str 
         query["name"] = {"$regex": q, "$options": "i"}
     svcs = await Db.mp_services.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     c = await mp.cfg()
+    radius = radius_km or float(c.get("service_radius_km", 10))
+    has_loc = bool(lat and lng)
+    out = []
     for s in svcs:
         partners = await Db.mp_partners.find(
             {"application_status": "approved", "active": True, "paused": {"$ne": True},
              "services": {"$elemMatch": {"service_id": s["service_id"], "approval_status": "approved"}}},
-            {"services.$": 1}).to_list(100)
+            {"services.$": 1, "location": 1}).to_list(200)
+        if has_loc:
+            # Only count partners registered within the serviceable radius of the customer.
+            nearby = []
+            for p in partners:
+                loc = p.get("location") or {}
+                if loc.get("lat") and loc.get("lng") and mp.haversine_km(lat, lng, loc["lat"], loc["lng"]) <= radius:
+                    nearby.append(p)
+            partners = nearby
+            if not partners:
+                continue  # hide services with no nearby partner — customer sees "not available"
         s["partner_count"] = len(partners)
         prices = [p["services"][0].get("price") for p in partners if p.get("services") and p["services"][0].get("price")]
         _apply_price(s, min(prices) if prices else s.get("price"), c, s["service_id"])
-    return svcs
+        out.append(s)
+    return out
 
 
 def _apply_price(s: Dict[str, Any], base: Any, c: Dict[str, Any], seed: str = ""):
@@ -888,6 +903,62 @@ async def admin_review_doctor(doctor_id: str, body: ReviewDecision, x_admin_toke
         await mp.send_mail(d["personal"]["email"], f"Celesta Glow — application {new_status.replace('_', ' ')}",
                            f"Your application status is now: {new_status.replace('_',' ')}. Reason: {body.reason or '—'}")
     return {"success": True, "status": new_status}
+
+
+@router.put("/admin/doctors/{doctor_id}/details")
+async def admin_edit_doctor_details(doctor_id: str, body: Dict[str, Any], x_admin_token: str = Header(None)):
+    """Full edit of every dermatologist field from the 'All Dermatologists' admin section."""
+    await _check_admin(x_admin_token)
+    d = await Db.mp_doctors.find_one({"doctor_id": doctor_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Doctor not found")
+    FMAP = {
+        "name": "personal.name", "email": "personal.email", "mobile": "personal.mobile",
+        "city": "personal.city", "state": "personal.state", "pincode": "personal.pincode",
+        "qualification": "professional.qualification", "institution": "professional.institution",
+        "specialisation": "professional.specialisation", "registration_number": "professional.registration_number",
+        "issuing_authority": "professional.issuing_authority", "bio": "professional.bio",
+    }
+    updates: Dict[str, Any] = {FMAP[k]: body[k] for k in FMAP if k in body}
+    if "experience_years" in body:
+        try:
+            updates["professional.experience_years"] = int(body["experience_years"])
+        except (TypeError, ValueError):
+            pass
+    for src, path in (("specialties", "professional.specialties"), ("languages", "consultation.languages")):
+        if src in body:
+            v = body[src]
+            updates[path] = v if isinstance(v, list) else [s.strip() for s in str(v).split(",") if s.strip()]
+    if "fee" in body:
+        try:
+            updates["consultation.fee"] = float(body["fee"])
+        except (TypeError, ValueError):
+            pass
+    if "duration_min" in body:
+        try:
+            updates["consultation.duration_min"] = int(body["duration_min"])
+        except (TypeError, ValueError):
+            pass
+    if not updates:
+        raise HTTPException(400, "Nothing to update")
+    updates["updated_at"] = mp.now()
+    await Db.mp_doctors.update_one({"doctor_id": doctor_id}, {"$set": updates})
+    await mp.audit("admin", "doctor_edit_details", "doctor", doctor_id, new=list(updates.keys()))
+    return {"success": True}
+
+
+@router.delete("/admin/doctors/{doctor_id}")
+async def admin_remove_doctor(doctor_id: str, x_admin_token: str = Header(None)):
+    """Soft-remove a dermatologist from the user app (reversible via re-approve)."""
+    await _check_admin(x_admin_token)
+    d = await Db.mp_doctors.find_one({"doctor_id": doctor_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Doctor not found")
+    await Db.mp_doctors.update_one({"doctor_id": doctor_id}, {"$set": {
+        "active": False, "application_status": "removed", "removed": True, "removed_at": mp.now()}})
+    await Db.mp_accounts.update_many({"role": "doctor", "ref_id": doctor_id}, {"$set": {"disabled": True}})
+    await mp.audit("admin", "doctor_remove", "doctor", doctor_id)
+    return {"success": True}
 
 
 @router.get("/admin/partners")

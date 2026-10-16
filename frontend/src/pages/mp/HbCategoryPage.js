@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Clock, ArrowRight, MapPinOff } from 'lucide-react';
 import { mp } from '../../utils/mpApi';
+import LocationGate, { useSharedLocation } from '../../components/mp/LocationGate';
 import SEOHead from '../../components/SEOHead';
 import { PriceTag, DiscountBadge } from '../../components/mp/PriceTag';
 
@@ -31,13 +32,22 @@ export default function HbCategoryPage() {
   const [tree, setTree] = useState(null);
   const [sub, setSub] = useState('');
   const [gender, setGender] = useState('');
+  const [nearbyIds, setNearbyIds] = useState(null);
+  const loc = useSharedLocation();
   useEffect(() => { mp.get('/catalog/tree', { params: { context: 'home' } }).then((r) => setTree(r.data)).catch(() => setTree([])); }, []);
+  useEffect(() => {
+    if (!loc) { setNearbyIds(null); return; }
+    mp.get('/services', { params: { lat: loc.lat, lng: loc.lng } })
+      .then((r) => setNearbyIds(new Set(r.data.map((s) => s.service_id)))).catch(() => setNearbyIds(new Set()));
+  }, [loc?.lat, loc?.lng]);
   const cat = useMemo(() => (tree || []).find((c) => c.cat_id === catId), [tree, catId]);
   if (!tree) return <div className="py-24 text-center text-stone-400">Loading…</div>;
   if (!cat) return <div className="py-24 text-center" data-testid="hb-cat-missing">Category not available. <Link to="/services" className="text-emerald-700 underline">All services</Link></div>;
   const subs = cat.subcategories.filter((s) => s.services.length);
   const shown = subs.filter((s) => !sub || s.sub_id === sub)
-    .flatMap((s) => s.services).filter((s) => !gender || s.gender === gender || s.gender === 'unisex' || !s.gender);
+    .flatMap((s) => s.services)
+    .filter((s) => !gender || s.gender === gender || s.gender === 'unisex' || !s.gender)
+    .filter((s) => !nearbyIds || nearbyIds.has(s.service_id));
 
   return (
     <div className="bg-white min-h-screen" data-testid="hb-category-page">
@@ -67,10 +77,22 @@ export default function HbCategoryPage() {
               className={`rounded-full px-4 py-1.5 text-xs font-extrabold ${gender === g ? 'bg-white shadow text-stone-900' : 'text-stone-500'}`}>{l}</button>
           ))}
         </div>
+        {!loc ? (
+          <div className="mt-6"><LocationGate title="See services available at your doorstep" subtitle="Share your location so we can show partners who serve your area." /></div>
+        ) : (
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5" data-testid="hb-service-grid">
           {shown.map((s) => <ServiceCard key={s.service_id} s={s} />)}
-          {shown.length === 0 && <p className="col-span-full text-center text-sm text-stone-400 py-12">No services here yet.</p>}
+          {shown.length === 0 && (
+            <div className="col-span-full flex justify-center py-10" data-testid="no-services-nearby">
+              <div className="max-w-md w-full text-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 border border-emerald-100 rounded-3xl p-8 sm:p-10 shadow-sm">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-white shadow-sm ring-1 ring-emerald-100 flex items-center justify-center text-emerald-600 mb-3"><MapPinOff size={26} strokeWidth={1.6} /></div>
+                <h3 className="text-lg font-extrabold text-stone-900">We're not available at your location yet</h3>
+                <p className="text-sm text-stone-500 mt-1.5">No service partners near you for this category right now. Try switching your area from the top bar.</p>
+              </div>
+            </div>
+          )}
         </div>
+        )}
       </div>
     </div>
   );

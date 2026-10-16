@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Users, CalendarDays, LayoutGrid, Star, LifeBuoy, Settings, Package, IndianRupee } from 'lucide-react';
+import { Users, CalendarDays, LayoutGrid, Star, LifeBuoy, Settings, IndianRupee } from 'lucide-react';
 import AdminMpCRM from './AdminMpCRM';
 import AdminMpBookings from './AdminMpBookings';
 import AdminSupport from './AdminSupport';
-import AdminServices from './AdminServices';
-import MpCategories from '../../components/admin/MpCategories';
 import MpSettings from '../../components/admin/MpSettings';
 import MpReviews from '../../components/admin/MpReviews';
 import MpCustomServices from '../../components/admin/MpCustomServices';
-import { Wand2, FileEdit } from 'lucide-react';
-import MpContentManager from '../../components/admin/MpContentManager';
+import { Wand2 } from 'lucide-react';
 import HbCatalogManager from '../../components/admin/HbCatalogManager';
 import MpWithdrawals from '../../components/admin/MpWithdrawals';
 import MpUpdates from '../../components/admin/MpUpdates';
@@ -64,12 +61,9 @@ export const PlatformWallet = () => {
 
 const tabs = [
   ['partners', 'Partners & Applications', Users],
-  ['hb', 'Health & Beauty Catalogue', LayoutGrid],
-  ['content', 'Services & Content', FileEdit],
-  ['services', 'Service Catalogue', Package],
+  ['hb', 'Service Catalog & Content', LayoutGrid],
   ['custom', 'Partner-created Services', Wand2],
   ['bookings', 'Home Service Bookings', CalendarDays],
-  ['categories', 'Categories & Images', LayoutGrid],
   ['reviews', 'Reviews', Star],
   ['earnings', 'Platform Earnings', IndianRupee],
   ['withdrawals', 'Withdrawals', Wallet],
@@ -94,11 +88,8 @@ const AdminPartnerHub = () => {
       </div>
       {tab === 'partners' && <AdminMpCRM kind="partners" />}
       {tab === 'hb' && <HbCatalogManager />}
-      {tab === 'content' && <MpContentManager module="service" />}
-      {tab === 'services' && <AdminServices />}
       {tab === 'custom' && <MpCustomServices />}
       {tab === 'bookings' && <AdminMpBookings fixedModule="home" />}
-      {tab === 'categories' && <MpCategories module="service" />}
       {tab === 'reviews' && <MpReviews module="home" />}
       {tab === 'earnings' && <PlatformWallet />}
       {tab === 'withdrawals' && <MpWithdrawals ownerType="partner" />}

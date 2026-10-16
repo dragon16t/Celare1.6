@@ -19,18 +19,22 @@ const Img = ({ src, url, done, testid }) => (
 );
 
 const ServiceRow = ({ s, reload }) => {
-  const [v, setV] = useState({ name: s.name, price: s.price, duration_min: s.duration_min, gender: s.gender || 'unisex', status: s.status, show_in_onboarding: s.show_in_onboarding !== false, order: s.order || 0 });
+  const [v, setV] = useState({ name: s.name, price: s.price, duration_min: s.duration_min, gender: s.gender || 'unisex', status: s.status, show_in_onboarding: s.show_in_onboarding !== false, order: s.order || 0, short_desc: s.short_desc || '' });
   const save = () => mp.put(`/admin/hb/services/${s.service_id}`, { ...v, price: Number(v.price), duration_min: Number(v.duration_min), order: Number(v.order) }, adminHdr()).then(() => { toast.success('Service saved'); reload(); }).catch(err);
   return (
-    <div className="flex flex-wrap items-center gap-1.5 py-1.5 border-b border-stone-50 last:border-0" data-testid={`hb-adm-svc-${s.service_id}`}>
-      <input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} className={`${inp} flex-1 min-w-[140px]`} />
-      <input type="number" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} className={`${inp} w-20`} title="Base price ₹" />
-      <input type="number" value={v.duration_min} onChange={(e) => setV({ ...v, duration_min: e.target.value })} className={`${inp} w-16`} title="Minutes" />
-      <select value={v.gender} onChange={(e) => setV({ ...v, gender: e.target.value })} className={inp}><option value="unisex">Unisex</option><option value="women">Women</option><option value="men">Men</option></select>
-      <select value={v.status} onChange={(e) => setV({ ...v, status: e.target.value })} className={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select>
-      <label className="text-[10px] flex items-center gap-1"><input type="checkbox" checked={v.show_in_onboarding} onChange={(e) => setV({ ...v, show_in_onboarding: e.target.checked })} /> Onboarding</label>
-      <button onClick={save} className="text-emerald-700" data-testid={`hb-adm-svc-save-${s.service_id}`}><Save size={14} /></button>
-      <button onClick={() => window.confirm('Remove this service?') && mp.delete(`/admin/hb/services/${s.service_id}`, adminHdr()).then(reload)} className="text-rose-500"><Trash2 size={14} /></button>
+    <div className="py-2 border-b border-stone-50 last:border-0" data-testid={`hb-adm-svc-${s.service_id}`}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Img src={s.thumbnail || s.images?.[0]} url={`/admin/services/${s.service_id}/images?replace=true`} done={reload} testid={`hb-adm-svc-img-${s.service_id}`} />
+        <input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} className={`${inp} flex-1 min-w-[140px]`} />
+        <input type="number" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} className={`${inp} w-20`} title="Base price ₹" />
+        <input type="number" value={v.duration_min} onChange={(e) => setV({ ...v, duration_min: e.target.value })} className={`${inp} w-16`} title="Minutes" />
+        <select value={v.gender} onChange={(e) => setV({ ...v, gender: e.target.value })} className={inp}><option value="unisex">Unisex</option><option value="women">Women</option><option value="men">Men</option></select>
+        <select value={v.status} onChange={(e) => setV({ ...v, status: e.target.value })} className={inp}><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select>
+        <label className="text-[10px] flex items-center gap-1"><input type="checkbox" checked={v.show_in_onboarding} onChange={(e) => setV({ ...v, show_in_onboarding: e.target.checked })} /> Onboarding</label>
+        <button onClick={save} className="text-emerald-700" data-testid={`hb-adm-svc-save-${s.service_id}`}><Save size={14} /></button>
+        <button onClick={() => window.confirm('Remove this service?') && mp.delete(`/admin/hb/services/${s.service_id}`, adminHdr()).then(reload)} className="text-rose-500"><Trash2 size={14} /></button>
+      </div>
+      <input placeholder="Short description shown to customers in the app" value={v.short_desc} onChange={(e) => setV({ ...v, short_desc: e.target.value })} className={`${inp} w-full mt-1.5`} data-testid={`hb-adm-svc-desc-${s.service_id}`} />
     </div>
   );
 };
